@@ -1048,9 +1048,9 @@
         <!-- Détails Livreurs -->
          <h4 class="text-center" style="margin-top: 25px;" id="infos">Infos livreurs</h4>
          <div class="container" style="display: flex; flex-direction: row; gap: 10px;">
+           {% if delivery_men_infos %}
+           {% for deliver in delivery_men_infos %}
           <div class="card" id="deliverMan-infos" style="width: 18rem;">
-            {% if delivery_men_infos %}
-            {% for deliver in delivery_men_infos %}
             <div class="card-header">
               {{deliver.name}}
             </div>
@@ -1061,11 +1061,11 @@
               <li class="list-group-item">Total livraison: {{deliver.TotalDeliv}} FCFA</li>
               <li class="list-group-item">Pourcentage (20%): {{deliver.Percent}} FCFA</li>
             </ul>
-            {% endfor %}
-            {% else %}
-            <h2>Aucun livreur enregistré</h2>
-            {% endif %}
           </div>
+          {% endfor %}
+          {% else %}
+            <h2>Aucun livreur enregistré</h2>
+          {% endif %}
 
           
 
