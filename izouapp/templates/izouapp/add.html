@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add order</title>
+</head>
+<body>
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="exampleModalLabel">Modal title</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="container modal-body">
+        <div class="container modal-body">
+          <!-- Start -->
+          <div class="wrapper container-md">
+            <div class="d-flex">
+              <div class="p-2 flex-grow-1">
+                <h3>Ajouter une commande</h3>
+              </div>
+              <div class="p-2">
+                <nav class="nav" style="cursor: pointer;">
+                  <a class="nav-link" onclick="delivery()">Livraison</a>
+                  <a class="nav-link" onclick="site()">Sur place</a>
+                  <a class="nav-link" onclick="site()">Modifier</a>
+                </nav>
+              </div>
+            </div>
+            <form id="addOrderDelivery">
+              <label for="#infoClient">Infos client</label>
+              <div class="row g-2">
+                <div class="col-md-3">
+                  <input type="text" class="form-control" placeholder="Entrez le nom complet">
+                </div>
+                <div class="col-md-3">
+                  <input type="number" class="form-control" placeholder="Entrez le numéro de téléphone">
+                </div>
+                <div class="col-md-6">
+                  <input type="text" class="form-control" placeholder="Adresse livraison">
+                </div>
+              </div>
+
+              <!-- Second Row -->
+              <div class="row g-2 mt-2">
+                <div class="col-md-3">
+                  <select class="form-select">
+                    <option selected>Mode de paiement</option>
+                    <option value="izoua">Chez Izoua</option>
+                    <option value="livreur">Chez le livreur</option>
+                  </select>
+                </div>
+                <div class="col-md-3">
+                  <input type="number" class="form-control" placeholder="Prix de la livraison">
+                </div>
+                <div class="col-md-3">
+                  <input type="text" class="form-control" placeholder="Livreur">
+                </div>
+                <div class="col-md-3">
+                  <input type="number" class="form-control" placeholder="Prix de la livraison">
+                </div>
+                <div class="col-md-6 d-flex align-items-center">
+                  <label for="deliveryTime">Heure de livraison:</label>
+                  <input type="time" id="deliveryTime" class="form-control">
+                </div>
+
+                </div>
+                <hr class="my-4">
+
+
+                <label style="margin-top: 15px;">Pizza</label>
+                <div class="row g-2 mt-2">
+                  <div class="col-md-3">
+                    <select class="form-select">
+                      <option selected>Nom</option>
+                      <option value="VOSGIENNE">VOSGIENNE</option>
+                      <option value="VOSGIENNE HALAL">VOSGIENNE HALAL</option>
+                      <option value="LA FERMIERE DE MAMAN ISA">LA FERMIERE DE MAMAN ISA</option>
+                      <option value="ANTOINETTE">ANTOINETTE</option>
+                      <option value="SELUCY">SELUCY</option>
+                      <option value="REINE">REINE</option>
+                    </select>
+                  </div>
+                  <div class="col-md">
+                    <select class="form-select">
+                      <option selected>Taille</option>
+                      <option value="grande">Grande</option>
+                      <option value="mini">Mini</option>
+                    </select>
+                  </div>
+                  <div class="dropdown col-md-3">
+                    <button
+                      class="btn btn-outline-secondary dropdown-toggle w-100"
+                      type="button"
+                      id="dropdownCheckbox"
+                      data-bs-toggle="dropdown"
+                      aria-expanded="false">
+                      Suppléments
+                    </button>
+                    <ul class="dropdown-menu w-100" aria-labelledby="dropdownCheckbox">
+                      <li>
+                        <label class="dropdown-item">
+                          <input type="checkbox" value="emmenthal" class="form-check-input me-2"> Emmenthal
+                        </label>
+                      </li>
+                      <li>
+                        <label class="dropdown-item">
+                          <input type="checkbox" value="mozzarella" class="form-check-input me-2"> Mozzarella
+                        </label>
+                      </li>
+                      <li>
+                        <label class="dropdown-item">
+                          <input type="checkbox" value="creme_fraiche" class="form-check-input me-2"> Crème fraîche
+                        </label>
+                      </li>
+                      <li>
+                        <label class="dropdown-item">
+                          <input type="checkbox" value="crevette" class="form-check-input me-2"> Crevette
+                        </label>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div class="col-auto">
+                    <button class="btn btn-primary"><i class="bi bi-plus-circle"></i></button>
+                  </div>
+                </div>
+
+                <!-- Pizza spéciale section -->
+                <label>Pizza spéciale</label>
+
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <h6 class="text-center">Moitié</h6>
+                    <select class="form-select">
+                      <option selected>Nom</option>
+                      <option value="VOSGIENNE">VOSGIENNE</option>
+                      <option value="VOSGIENNE HALAL">VOSGIENNE HALAL</option>
+                      <option value="LA FERMIERE DE MAMAN ISA">LA FERMIERE DE MAMAN ISA</option>
+                      <option value="ANTOINETTE">ANTOINETTE</option>
+                      <option value="SELUCY">SELUCY</option>
+                      <option value="REINE">REINE</option>
+                    </select>
+                    <div class="dropdown col-md-6">
+                      <button
+                        class="btn btn-outline-secondary dropdown-toggle w-100"
+                        type="button"
+                        id="dropdownCheckbox"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false">
+                        Suppléments
+                      </button>
+                      <ul class="dropdown-menu w-100" aria-labelledby="dropdownCheckbox">
+                        <li>
+                          <label class="dropdown-item">
+                            <input type="checkbox" value="emmenthal" class="form-check-input me-2"> Emmenthal
+                          </label>
+                        </li>
+                        <li>
+                          <label class="dropdown-item">
+                            <input type="checkbox" value="mozzarella" class="form-check-input me-2"> Mozzarella
+                          </label>
+                        </li>
+                        <li>
+                          <label class="dropdown-item">
+                            <input type="checkbox" value="creme_fraiche" class="form-check-input me-2"> Crème fraîche
+                          </label>
+                        </li>
+                        <li>
+                          <label class="dropdown-item">
+                            <input type="checkbox" value="crevette" class="form-check-input me-2"> Crevette
+                          </label>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <h6 class="text-center">Moitié</h6>
+                    <select class="form-select">
+                      <option selected>Nom</option>
+                      <option value="VOSGIENNE">VOSGIENNE</option>
+                      <option value="VOSGIENNE HALAL">VOSGIENNE HALAL</option>
+                      <option value="LA FERMIERE DE MAMAN ISA">LA FERMIERE DE MAMAN ISA</option>
+                      <option value="ANTOINETTE">ANTOINETTE</option>
+                      <option value="SELUCY">SELUCY</option>
+                      <option value="REINE">REINE</option>
+                    </select>
+                    <div class="dropdown col-md-6">
+                      <button
+                        class="btn btn-outline-secondary dropdown-toggle w-100"
+                        type="button"
+                        id="dropdownCheckbox"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false">
+                        Suppléments
+                      </button>
+                      <ul class="dropdown-menu w-100" aria-labelledby="dropdownCheckbox">
+                        <li>
+                          <label class="dropdown-item">
+                            <input type="checkbox" value="emmenthal" class="form-check-input me-2"> Emmenthal
+                          </label>
+                        </li>
+                        <li>
+                          <label class="dropdown-item">
+                            <input type="checkbox" value="mozzarella" class="form-check-input me-2"> Mozzarella
+                          </label>
+                        </li>
+                        <li>
+                          <label class="dropdown-item">
+                            <input type="checkbox" value="creme_fraiche" class="form-check-input me-2"> Crème fraîche
+                          </label>
+                        </li>
+                        <li>
+                          <label class="dropdown-item">
+                            <input type="checkbox" value="crevette" class="form-check-input me-2"> Crevette
+                          </label>
+                        </li>
+                      </ul>
+                    </div>
+
+                    </div>
+                    <div class="row mb-6" style="margin-top: 19px">
+                      <div class="col-md-4">
+                        <select class="form-select">
+                          <option selected>Taille</option>
+                          <option value="grande">Grande</option>
+                          <option value="mini">Mini</option>
+                        </select>
+                      </div>
+
+                      <div class="col-md-2">
+                        <button class="btn btn-primary"><i class="bi bi-plus-circle"></i></button>
+                      </div>
+                  </div>
+                </div>
+
+                <hr class="my-4">
+
+
+                <div class="summary-box" id="summary-box" text-center>
+                  <h6>Détails</h6>
+                  Lorem ipsum dolor sit amet consectetur adipisicing elit. Aut obcaecati magni, dolore dolorum quasi earum fuga ut aliquid doloremque harum, a, nisi maxime?
+                  Lorem ipsum, dolor sit amet consectetur adipisicing elit. Consequuntur sunt ullam consequatur!
+                  Lorem ipsum dolor, sit amet consectetur adipisicing elit. Unde quos odio tenetur!
+                  Lorem ipsum dolor sit amet, consectetur adipisicing elit. Odio blanditiis voluptas inventore ab commodi sunt assumenda rerum repudiandae minima? Perspiciatis molestiae non rerum.
+                  Lorem ipsum dolor sit amet, consectetur adipisicing elit. Unde repellendus maxime alias ipsa nulla praesentium magnam dolore eveniet, inventore deleniti ullam repudiandae ut?
+                </div>
+                <div class="d-grid mt-4">
+                  <button class="btn btn-primary" type="button">Ajouter</button>
+                </div>
+            </form>
+</body>
+</html>

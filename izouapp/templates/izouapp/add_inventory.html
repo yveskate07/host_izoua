@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add inventory</title>
+</head>
+<body>
+    <!-- Add Inventory Modal -->
+    <div class="modal fade" id="addInventoryModal" tabindex="-1" data-bs-backdrop="static" aria-labelledby="addInventoryModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="addInventoryModalLabel">Ajouter</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form>
+                {% csrf_token %}
+              <div class="mb-3">
+                <label for="addDate" class="form-label">Date</label>
+                <input type="date" class="form-control" id="addDate" required>
+              </div>
+              <div class="mb-3">
+                <label for="addGrande" class="form-label">Grande</label>
+                <input type="number" class="form-control" id="addGrande" required>
+              </div>
+              <div class="mb-3">
+                <label for="addMini" class="form-label">Mini</label>
+                <input type="number" class="form-control" id="addMini" required>
+              </div>
+              <div class="mb-3">
+                <label for="addTotalVendu" class="form-label">Total Vendu</label>
+                <input type="number" class="form-control" id="addTotalVendu" readonly>
+              </div>
+              <div class="mb-3">
+                <label for="addReste" class="form-label">Reste</label>
+                <input type="number" class="form-control" id="addReste" readonly>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+            <button type="button" class="btn btn-primary">Sauvegarder/button>
+          </div>
+        </div>
+      </div>
+    </div>
+</body>
+</html>

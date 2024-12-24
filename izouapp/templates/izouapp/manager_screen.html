@@ -1,0 +1,2466 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Izoua Pizza</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.0/chart.min.js" integrity="sha512-R60W3LgKdvvfwbGbqKusRu/434Snuvr9/Flhtoq9cj1LQ9P4HFKParULqOCAisHk/J4zyaEWWjiWIMuP13vXEg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <style>
+    /* Sidebar Styling */
+    #sidebar {
+      width: 250px;
+      height: 100vh;
+      position: fixed;
+      top: 0;
+      left: 0;
+      background-color: #f8f9fa;
+      transition: width 0.3s;
+      overflow: hidden;
+    }
+
+    #sidebar.collapsed {
+      width: 70px;
+    }
+
+    #sidebar ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    #sidebar li {
+      margin: 10px 0;
+    }
+
+    #sidebar a {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+      color: #333;
+      padding: 10px 20px;
+      white-space: nowrap;
+      transition: all 0.3s ease;
+    }
+
+    #sidebar.collapsed a {
+      justify-content: center;
+      padding: 10px;
+    }
+
+    #sidebar.collapsed a span {
+      display: none;
+    }
+
+    #sidebar i {
+      margin-right: 10px;
+    }
+
+    #sidebar.collapsed i {
+      margin-right: 0;
+    }
+
+    /* Content Styling */
+    .content {
+      margin-left: 250px;
+      padding: 20px;
+      transition: margin-left 0.3s;
+    }
+
+    .content.collapsed {
+      margin-left: 70px;
+    }
+
+    /* Scroll to Top Button Styling */
+  #scrollToTopBtn {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    font-size: 24px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease;
+  }
+
+  #scrollToTopBtn:hover {
+    background-color: #0056b3;
+  }
+    
+  .card {
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+#calendarDisplay {
+  font-size: 1.2rem;
+  color: #555;
+}
+
+
+
+  </style>
+</head>
+<body class="">
+
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="exampleModalLabel1">Izoua Pizza</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="container modal-body">
+        <div class="container modal-body">
+          <!-- Start -->
+            <div class="wrapper container-md w-100">
+              <div class="d-flex">
+                <div class="p-2 flex-grow-1">
+                  <h3>Ajouter une commande</h3>
+                </div>
+                <div class="p-2">
+                  <nav class="nav" style="cursor: pointer;">
+                    <a class="nav-link" onclick="delivery()">Livraison</a>
+                    <a class="nav-link" onclick="site()">Sur place</a>
+                  </nav>
+                </div>
+              </div>
+
+              <!-- order from delivery -->
+              
+              <form id="addOrderDelivery" method="post" action="{% url 'add_order' %}">
+                {% csrf_token %}
+                  <input type="hidden" name='addOrder' value="order_to_deliver">
+                  <input type="hidden" name='smallPizzasAvailableOnDelivery' id="smallPizzasAvailableOnDelivery">
+                  <input type="hidden" name='largePizzasAvailableOnDelivery' id="largePizzasAvailableOnDelivery">
+                <label>Infos client</label>
+                <div class="row g-2">
+                  <div class="col-md-3">
+                    <input type="text" class="form-control" placeholder="Entrez le nom complet" required name="client_name">
+                  </div>
+                  <div class="col-md-3">
+                    <input type="tel" class="form-control" placeholder="Entrez le numéro de téléphone" required name="client_number">
+                  </div>
+                  <div class="col-md-6">
+                    <input type="text" class="form-control" placeholder="Adresse livraison" required name = "client_adress">
+                  </div>
+                </div>
+
+                <!-- Second Row -->
+                <div class="row g-2 mt-2">
+                  <div class="col-md-4">
+                    <select class="form-select" name="payment_method_from_order_to_deliver">
+                      <option selected>Mode de paiement</option>
+                      <option value="izoua">Chez Izoua</option>
+                      <option value="delivered_man">Chez le livreur</option>
+                    </select>
+                  </div>
+                  <div class="col-md-3">
+                    <input type="number" class="form-control" placeholder="Prix de la livraison" name = "price_delivery">
+                  </div>
+                  <div class="col-md-3">
+                    <select class="form-select" name="delivery_man" id="delivery_man" required>
+                    </select>
+                  </div>
+                  <div class="col-md-6 d-flex align-items-center">
+                    <label for="deliveryTime">Heure de livraison:</label>
+                    <input type="time" id="deliveryTime" class="form-control" name = "delivery_time">
+                  </div>
+                </div>
+                  <hr class="my-4">
+
+                  <!-- Infos à propos de pizza normale-->
+
+                  <label style="margin-top: 15px;">Pizza Normale</label>
+                  <div class="row g-2 mt-2">
+                    <div class="col-md-3">
+                      <select class="form-select select-pizza" id="pizza_name_to_deliver" name="pizza_name_to_deliver">
+                      </select>
+                    </div>
+                    <div class="col-md-3">
+                      <select class="form-select select-size" id="normal_pizza_size_to_deliver" name ="normal_pizza_size_to_deliver">
+                      </select>
+                    </div>
+                    <div class="dropdown col-md-3">
+                      <button
+                        class="btn btn-outline-secondary dropdown-toggle w-100"
+                        type="button"
+                        id="dropdownCheckbox1"
+                        name = 'dropdownCheckbox1'
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false">
+                        Suppléments
+                      </button>
+                      <ul class="dropdown-menu w-100 select-toppings-for-pizza" id="select-toppings-for-normal-pizza-to-deliver" aria-labelledby="dropdownCheckbox1">
+                      </ul>
+                    </div>
+
+                    <div class="col-auto col-md-3">
+                      <button class="btn btn-primary" type="button" id="btn-add-normal-deliver" name="add" onclick="AddNormalPizzaToDeliverToInvoice(idBtn='btn-add-normal-deliver', errorid='errorspan1', summary_box='summary-box-from-order-on-delivery')"><i class="bi bi-plus-circle"></i></button>
+                      <span style="color: red;" id="errorspan1"></span>
+                    </div>
+                  </div>
+
+                  <hr class="my-4">
+
+                  <!-- Infos à propos de pizza spéciale section -->
+
+                  <label>Pizza spéciale</label>
+
+                  <div class="row mb-3">
+                    <div class="col-md-3">
+                      <h6 class="text-center">Moitié 1</h6>
+                      <select class="form-select select-pizza" name="pizza_half1_to_deliver" id="pizza_half1_to_deliver">
+                      </select>
+                    </div>
+                    <div class="col-md-3">
+                      <h6 class="text-center">Moitié 2</h6>
+                      <select class="form-select select-pizza" name="pizza_half2_to_deliver" id="pizza_half2_to_deliver">
+                      </select>
+                    </div>
+                    <div class="dropdown col-md-2"  style="display: flex; align-items:flex-end">
+                      <button
+                        class="btn btn-outline-secondary dropdown-toggle w-100"
+                        type="button"
+                        id="dropdownCheckbox2"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false">
+                        Suppléments
+                      </button>
+                      <ul class="dropdown-menu w-100 select-toppings-for-pizza" id='select-toppings-for-special-pizza-to-deliver' aria-labelledby="dropdownCheckbox2">
+                      </ul>
+                    </div>
+                    <div class="col-md-2"  style="display: flex; align-items:flex-end">
+                      <select class="form-select select-size" name="pizza_half_size_to_deliver" id="pizza_half_size_to_deliver">
+                      </select>
+                    </div>
+                    <div class="col-md-2"  style="display: flex; align-items:flex-end">
+                      <button class="btn btn-primary" type = "button" id="btn-add-special-deliver" name="ajout" onclick="AddSpecialPizzaToDeliverToInvoice(idBtn='btn-add-special-deliver',errorid='errorspan2',summary_box='summary-box-from-order-on-delivery')"><i class="bi bi-plus-circle"></i></button>
+                      <span style="color: red;" id="errorspan2"></span>
+                    </div>
+                  </div>
+
+                  <hr class="my-4">
+
+                  <div id="summary-box-from-order-on-delivery">
+                    <h6>Détails</h6>
+                  </div>
+
+                  <textarea id="hidden-textarea-from-order-on-delivery1" name="hidden-textarea-from-order-on-delivery1" style="display:none;"></textarea>
+                  <textarea id="hidden-textarea-from-order-on-delivery" name="hidden-textarea-from-order-on-delivery" style="display:none;"></textarea>
+                  <div class="d-grid mt-4">
+                    <button class="btn btn-primary" ><input type="submit" value="Ajouter" style="border: none; background: none;"/></button>
+                  </div>
+              </form>
+
+                <!-- On site order -->
+              <form id="addOrderSite" method="post" action="{% url 'add_order' %}" style="display: none;">
+
+                {% csrf_token %}
+                <input type="hidden" name="addOrder" value="order_on_site">
+                <input type="hidden" name='smallPizzasAvailableOnSite' id='smallPizzasAvailableOnSite'>
+                <input type="hidden" name='largePizzasAvailableOnSite' id='largePizzasAvailableOnSite'>
+                <label>Infos client</label>
+                <div class="row g-2">
+                  <div class="col-md-6">
+                    <input type="text" class="form-control" placeholder="Entrez le nom complet" required name = "client_name">
+                  </div>
+                </div>
+
+                <hr class="my-4">
+
+                  <!-- Infos à propos de pizza normale-->
+                  <label style="margin-top: 15px;">Pizza</label>
+                  <div class="row g-2 mt-2">
+                    <div class="col-md-3">
+                      <select class="form-select select-pizza" name="pizza_name_onsite" id="pizza_name_onsite">
+                      </select>
+                    </div>
+                    <div class="col-md">
+                      <select class="form-select select-size" name="normal_pizza_size_onsite" id="normal_pizza_size_onsite">
+                      </select>
+                    </div>
+                    <div class="dropdown col-md-3">
+                      <button
+                        class="btn btn-outline-secondary dropdown-toggle w-100"
+                        type="button"
+                        id="dropdownCheckbox3"
+                        name="dropdownCheckbox3"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false">
+                        Suppléments
+                      </button>
+                      <ul class="dropdown-menu w-100 select-toppings-for-pizza" id="select-toppings-for-normal-pizza-on-site" aria-labelledby="dropdownCheckbox3">
+                      </ul>
+                    </div>
+
+
+                    <div class="col-auto">
+                      <button class="btn btn-primary" id="btn-add-normal-on-site" type="button" name="ajout1" onclick="AddNormalPizzaOnSiteToInvoice(idBtn='btn-add-normal-on-site', errorid='errorspan3',summary_box='summary-box-from-order-on-site')"><i class="bi bi-plus-circle"></i></button>
+                      <span style="color: red;" id="errorspan3"></span>
+                    </div>
+                  </div>
+
+                <hr class="my-4">
+
+                <!-- Infos à propos de pizza spéciale section -->
+                <label style="margin-top: 15px;">Pizza spéciale</label>
+
+                <div class="row mb-3">
+                  <div class="col-md-3">
+                    <h6 class="text-center">Moitié 1</h6>
+                    <div class="dropdown">
+                      <select class="form-select select-pizza" name="pizza_half1_onsite" id="pizza_half1_onsite">
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <h6 class="text-center">Moitié 2</h6>
+                    <div class="dropdown">
+                      <select class="form-select select-pizza" name="pizza_half2_onsite" id="pizza_half2_onsite">
+                      </select>
+                    </div>
+                  </div>
+                  <div class="dropdown col-md-2" style="display: flex; align-items:flex-end">
+                    <button
+                        class="btn btn-outline-secondary dropdown-toggle w-100"
+                        type="button"
+                        id="dropdownCheckbox4"
+                        name="dropdownCheckbox4"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false">
+                        Suppléments
+                      </button>
+                      <ul class="dropdown-menu w-100 select-toppings-for-pizza" id="select-toppings-for-special-pizza-on-site" aria-labelledby="dropdownCheckbox4">
+                      </ul>
+                  </div>
+                  <div class="col-md-2"  style="display: flex; align-items:flex-end">
+                    <select class="form-select select-size" name="special_pizza_size_onsite" id="special_pizza_size_onsite">
+                    </select>
+                  </div>
+                  <div class="col-md-2"  style="display: flex; align-items:flex-end">
+                    <button class="btn btn-primary" id="btn-add-special-on-site" type="button" name="ajout2" onclick="AddSpecialPizzaOnSiteToInvoice(idBtn='btn-add-special-on-site', errorid='errorspan4',summary_box='summary-box-from-order-on-site')"><i class="bi bi-plus-circle"></i></button>
+                    <span style="color: red;" id="errorspan4"></span>
+                  </div>
+                </div>
+                  
+                <hr class="my-4">
+
+                <div id="summary-box-from-order-on-site">
+                  <h6>Détails</h6>
+                </div>
+                <textarea id="hidden-textarea-from-order-on-site" name="hidden-textarea-from-order-on-site" style="display:none;"></textarea>
+                <textarea id="hidden-textarea-from-order-on-site1" name="hidden-textarea-from-order-on-site1" style="display:none;"></textarea>
+                <div class="d-grid mt-4">
+                  <button class="btn btn-primary" ><input type="submit" onclick="" value="Ajouter" style="border: none; background: none;"/></button>
+                </div>
+              </form>
+            </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="editOrderDeliveryModal" tabindex="-1" aria-labelledby="editdeliveryModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="editdeliveryModalLabel">Modifier la commande</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="setEditFormEmpty(form='on-delivery')" aria-label="Close"></button>
+      </div>
+      <div class="container modal-body">
+        <div class="container modal-body">
+          <div class="wrapper container-md" id="editOrderOnDelivery">
+            <form method="post" action="{% url 'edit_order1' %}"> 
+              {% csrf_token %}
+                <input type="hidden" name='order-id' id="order-on-delivery-id">
+                <input type="hidden" name='client-id' id="client-on-delivery-id">
+                <input type="hidden" name='order-type' value="to-deliver">
+                <input type="hidden" name='deliver-id' id="delivererman">
+
+                <!-- le nombre de Grandes/Petites pizzas disponibles en stock-->
+                <input type="hidden" name='edit-SmallPizzasAvailableOnDelivery' id="edit-SmallPizzasAvailableOnDelivery">
+                <input type="hidden" name='edit-LargePizzasAvailableOnDelivery' id="edit-LargePizzasAvailableOnDelivery">
+
+                <!-- le nombre de Grandes/Petites pizzas vendues pour cette commandes-->
+                <input type="hidden" name="edit-SmallPizzasSoldOnDelivery" id="edit-SmallPizzasSoldOnDelivery">
+                <input type="hidden" name="edit-LargePizzasSoldOnDelivery" id="edit-LargePizzasSoldOnDelivery">
+              <label>Infos client</label>
+              <div class="row g-2">
+                <div class="col-md-3">
+                  <input type="text" class="form-control" placeholder="Entrez le nom complet" required name="client_name" id="edit_client_name">
+                </div>
+                <div class="col-md-3">
+                  <input type="tel" class="form-control" placeholder="Entrez le numéro de téléphone" required name="client_number" id="edit_client_number">
+                </div>
+                <div class="col-md-6">
+                  <input type="text" class="form-control" placeholder="Adresse livraison" required name = "client_adress" id="edit_client_adress">
+                </div>
+              </div>
+
+              <!-- Second Row -->
+              <div class="row g-2 mt-2">
+                <div class="col-md-4">
+                  <select class="form-select" name="payment_method_from_order_to_deliver" id="edit_payment_method_from_order_to_deliver">
+                    <option selected>Mode de paiement</option>
+                    <option value="izoua">Chez Izoua</option>
+                    <option value="delivered_man">Chez le livreur</option>
+                  </select>
+                </div>
+                <div class="col-md-3">
+                  <input type="number" class="form-control" placeholder="Prix de la livraison" name = "price_delivery" id="edit_price_delivery">
+                </div>
+                <div class="col-md-3">
+                  <select class="form-select" name="delivery_man" id="editDeliveryMan" required>
+                  </select>
+                </div>
+                <div class="col-md-6 d-flex align-items-center">
+                  <label for="deliveryTime">Heure de livraison:</label>
+                  <input type="time" class="form-control" name = "delivery_time" id="edit_delivery_time">
+                </div>
+              </div>
+
+              <hr class="my-4">
+
+              <!-- Infos à propos de pizza normale-->
+
+              <label style="margin-top: 15px;">Pizza Normale</label>
+              <div class="row g-2 mt-2">
+                <div class="col-md-3">
+                    <select class="form-select select-pizza" id="editPizzaNameToDeliver" name="pizza_name_to_deliver">
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select select-size" id="editNormalPizzaSizeToDeliver" name ="normal_pizza_size_to_deliver">
+                    </select>
+                </div>
+                <div class="dropdown col-md-3">
+                  <button
+                      class="btn btn-outline-secondary dropdown-toggle w-100"
+                      type="button"
+                      id="editDropdownCheckbox1"
+                      name = 'dropdownCheckbox1'
+                      data-bs-toggle="dropdown"
+                      aria-expanded="false">
+                      Suppléments
+                  </button>
+                  <ul class="dropdown-menu w-100 select-toppings-for-pizza" id="edit-select-toppings-for-normal-pizza-to-deliver" aria-labelledby="dropdownCheckbox1">
+                  </ul>
+                </div>
+
+                <div class="col-auto col-md-3">
+                  <button class="btn btn-primary" id='edit-btn-add-normal-on-delivery' type="button" name="add" onclick="AddNormalPizzaToDeliverToInvoice(idBtn='edit-btn-add-normal-on-delivery', errorid='editerrorspan1',summary_box='edit-summary-box-from-order-on-delivery')"><i class="bi bi-plus-circle"></i></button>
+                  <span style="color: red;" id="editerrorspan1"></span>
+                </div>
+              </div>
+
+              <hr class="my-4">
+
+                <!-- Infos à propos de pizza spéciale section -->
+
+              <label>Pizza spéciale</label>
+
+              <div class="row mb-3">
+                <div class="col-md-3">
+                  <h6 class="text-center">Moitié 1</h6>
+                  <select class="form-select select-pizza" name="pizza_half1_to_deliver" id="edit_pizza_half1_to_deliver">
+                  </select>
+                </div>
+                <div class="col-md-3">
+                  <h6 class="text-center">Moitié 2</h6>
+                  <select class="form-select select-pizza" name="pizza_half2_to_deliver" id="edit_pizza_half2_to_deliver">
+                  </select>
+                </div>
+                <div class="dropdown col-md-2" style="display: flex; align-items:flex-end">
+                  <button
+                    class="btn btn-outline-secondary dropdown-toggle w-100"
+                    type="button"
+                    id="editdropdownCheckbox2"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false">
+                    Suppléments
+                  </button>
+                  <ul class="dropdown-menu w-100 select-toppings-for-pizza" id='edit-select-toppings-for-special-pizza-to-deliver' aria-labelledby="dropdownCheckbox2">
+                  </ul>
+                </div>
+                <div class="col-md-2" style="display: flex; align-items:flex-end">
+                  <select class="form-select select-size" name="pizza_half_size_to_deliver" id="edit_pizza_half_size_to_deliver">
+                  </select>
+                </div>
+                <div class="col-md-2" style="display: flex; align-items:flex-end">
+                  <button class="btn btn-primary" id="edit-btn-add-special-on-delivery" type="button" name="ajout" onclick="AddSpecialPizzaToDeliverToInvoice(idBtn='edit-btn-add-special-on-delivery', errorid='editerrorspan2',summary_box='edit-summary-box-from-order-on-delivery')"><i class="bi bi-plus-circle"></i></button>
+                  <span style="color: red;" id="editerrorspan2"></span>
+                </div>
+              </div>
+
+              <hr class="my-4">
+
+              <div class="row g-2 mt-2 text-center">
+                <select name="editOrderStatus" id="editOrderDelivStatus" class="form-select">
+                  <option value="delivered">Livrée</option>
+                  <option value="canceled">Annulée</option>
+                </select>
+              </div>
+
+              <hr class="my-4">
+
+              <div id="edit-summary-box-from-order-on-delivery">
+                <h6>Détails</h6>
+              </div>
+
+              <textarea id="edit-hidden-textarea-from-order-on-delivery1" name="edit-hidden-textarea-from-order-on-delivery1" style="display:none;"></textarea>
+              <textarea id="edit-hidden-textarea-from-order-on-delivery" name="edit-hidden-textarea-from-order-on-delivery" style="display:none;"></textarea>
+              <div class="d-grid mt-4">
+                <button class="btn btn-primary" ><input type="submit" id="editFinalBtnName1" value="Ajouter" style="border: none; background: none;"/></button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="editOrderOnSiteModal" tabindex="-1" aria-labelledby="editonsiteModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="editonsiteModalLabel">Modifier la commande</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="setEditFormEmpty(form='on-site')"></button>
+      </div>
+      <div class="container modal-body">
+        <!-- Start -->
+        <div class="wrapper container-md">
+          <form method="post" action="{% url 'edit_order1' %}">
+            {% csrf_token %}
+            <input type="hidden" name='client-id' id="client-on-site-id">
+            <input type="hidden" name='order-id' id="order-on-site-id">
+            <input type="hidden" name='order-type' value="on-site">
+            <!-- le nombre de Grandes/Petites pizzas disponibles en stock-->
+            <input type="hidden" name="edit-SmallPizzasAvailableOnSite" id="edit-SmallPizzasAvailableOnSite">
+            <input type="hidden" name="edit-LargePizzasAvailableOnSite" id="edit-LargePizzasAvailableOnSite">
+
+            <!-- le nombre de Grandes/Petites pizzas vendues pour cette commandes-->
+            <input type="hidden" name="edit-SmallPizzasSoldOnSite" id="edit-SmallPizzasSoldOnSite">
+            <input type="hidden" name="edit-LargePizzasSoldOnSite" id="edit-LargePizzasSoldOnSite">
+
+            <label>Infos client</label>
+            <div class="row g-2">
+              <div class="col-md-6">
+                <input type="text" class="form-control" placeholder="Entrez le nom complet" required name = "client_name" id="editclient_name_on_site">
+              </div>
+            </div>
+
+            <hr class="my-4">
+
+            <!-- Infos à propos de pizza normale-->
+            <label style="margin-top: 15px;">Pizza</label>
+            <div class="row g-2 mt-2">
+              <div class="col-md-3">
+                <select class="form-select select-pizza" name="pizza_name_onsite" id="edit_pizza_name_onsite">
+                </select>
+              </div>
+              <div class="col-md">
+                <select class="form-select select-size" name="normal_pizza_size_onsite" id="edit_normal_pizza_size_onsite">
+                </select>
+              </div>
+              <div class="dropdown col-md-3">
+                <button
+                  class="btn btn-outline-secondary dropdown-toggle w-100"
+                  type="button"
+                  id="editdropdownCheckbox3"
+                  name="dropdownCheckbox3"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false">
+                  Suppléments
+                </button>
+                <ul class="dropdown-menu w-100 select-toppings-for-pizza" id="edit-select-toppings-for-normal-pizza-on-site" aria-labelledby="dropdownCheckbox3">
+                </ul>
+              </div>
+
+              <div class="col-auto">
+                <button class="btn btn-primary" id='edit-btn-add-normal-on-site' type="button" name="ajout1" onclick="AddNormalPizzaOnSiteToInvoice(idBtn='edit-btn-add-normal-on-site',errorid='editerrorspan3',summary_box='edit-summary-box-from-order-on-site')"><i class="bi bi-plus-circle"></i></button>
+                <span style="color: red;" id="editerrorspan3"></span>
+              </div>
+            </div>
+
+            <hr class="my-4">
+
+            <!-- Infos à propos de pizza spéciale section -->
+            <label style="margin-top: 15px;">Pizza spéciale</label>
+
+            <div class="row mb-3">
+              <div class="col-md-3">
+                <h6 class="text-center">Moitié 1</h6>
+                <div class="dropdown">
+                  <select class="form-select select-pizza" name="pizza_half1_onsite" id="edit_pizza_half1_onsite">
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <h6 class="text-center">Moitié 2</h6>
+                <div class="dropdown">
+                  <select class="form-select select-pizza" name="pizza_half2_onsite" id="edit_pizza_half2_onsite">
+                  </select>
+                </div>
+              </div>
+              <div class="dropdown col-md-2" style="display: flex; align-items:flex-end">
+                <button
+                    class="btn btn-outline-secondary dropdown-toggle w-100"
+                    type="button"
+                    id="editdropdownCheckbox4"
+                    name="dropdownCheckbox4"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false">
+                    Suppléments
+                </button>
+                <ul class="dropdown-menu w-100 select-toppings-for-pizza" id="edit-select-toppings-for-special-pizza-on-site" aria-labelledby="dropdownCheckbox4">
+                </ul>
+              </div>
+              <div class="col-md-2" style="display: flex; align-items:flex-end">
+                <select class="form-select select-size" name="special_pizza_size_onsite" id="edit_special_pizza_size_onsite">
+                </select>
+              </div>
+              <div class="col-md-2" style="display: flex; align-items:flex-end">
+                <button class="btn btn-primary" id='edit-btn-add-special-on-site' type="button" name="ajout2" onclick="AddSpecialPizzaOnSiteToInvoice(idBtn='edit-btn-add-special-on-site', errorid='editerrorspan4',summary_box='edit-summary-box-from-order-on-site')"><i class="bi bi-plus-circle"></i></button>
+                <span style="color: red;" id="editerrorspan4"></span>
+              </div>
+            </div>
+                
+            <hr class="my-4">
+
+            <div id="edit-summary-box-from-order-on-site">
+              <h6>Détails</h6>
+            </div>
+            <textarea id="edit-hidden-textarea-from-order-on-site" name="edit-hidden-textarea-from-order-on-site" style="display:none;"></textarea>
+            <textarea id="edit-hidden-textarea-from-order-on-site1" name="edit-hidden-textarea-from-order-on-site1" style="display:none;"></textarea>
+            <div class="d-grid mt-4">
+              <button class="btn btn-primary" ><input type="submit" id="editFinalBtnName2" value="Ajouter" style="border: none; background: none;"/></button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="notenoughdataModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Données insuffisantes</h5>
+      </div>
+      <div class="modal-body">
+        <p>Vous ne disposez pas d'assez de données pour créer une commande.</p>
+      </div>
+      <div class="modal-footer">
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="exampleModalLong" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle" aria-hidden="true">
+  <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-content">
+      <div class="modal-header justify-content-center">
+        <h5 class="modal-title" id="exampleModalLongTitle">Modifications en attente</h5>
+      </div>
+      <div class="modal-body" id="pending-order-to-edit">
+        <table class="table commande-table">
+          <thead>
+            <tr>
+              <th class="text-center" scope="col">#</th>
+              <th class="text-center" scope="col">Infos client</th>
+              <th class="text-center" scope="col">Commande</th>
+              <th class="text-center" scope="col">Statut</th>
+              <th class="text-center" scope="col">Total</th>
+              <th class="text-center" scope="col">Date</th>
+              <th class="text-center" scope="col">Livreur</th>
+              <th class="text-center" scope="col">Action</th>
+            </tr>
+          </thead>
+          <tbody id="body-pending-order"></tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <!-- Sidebar -->
+<nav id="sidebar" class="sidebar">
+    
+    <ul>
+      <li style="margin-bottom: 25px; font-size: 27px;"  id="toggleSidebar">
+        <a href="#">
+            <i class="bi bi-speedometer2"></i> <span>Izoua</span>
+        </a>
+      </li>
+      <li>
+        <a href="#command-box">
+          <i class="bi bi-list-check"></i> <span>Commandes</span>
+        </a>
+      </li>
+      <li>
+        <a href="#inventaire-box">
+          <i class="bi bi-box"></i> <span>Inventaire</span>
+        </a>
+      </li>
+      <!--<li>
+        <a href="#">
+          <i class="bi bi-people"></i> <span>Clients</span>
+        </a>
+      </li>-->
+      <li>
+        <a href="#analyses-box">
+          <i class="bi bi-graph-up"></i> <span>Analyses</span>
+        </a>
+      </li>
+      <li>
+        <a href="#clients-box">
+          <i class="bi bi-database-fill"></i> <span>Clients</span>
+        </a>
+      </li>
+      <li>
+        <a href="#" data-bs-toggle="modal" data-bs-target="#exampleModalLong">
+          <i class="bi bi-hourglass-split"></i><span>En attente</span><span style="color: blue; margin-left: 5px;" id="number_pending"></span>
+        </a>
+      </li>
+      <li id="admin_url">
+        <a href="{% url 'to_admin' %}">
+          <i class="bi bi-gear-wide-connected"></i>
+          <span>Vers admin</span>
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'to_admin' %}">
+          <i class="bi bi-power"></i>
+          <span>
+          <form action="{% url 'logout' %}" style="margin-left:5px;" method="POST">{% csrf_token %}
+            <input type="submit" value="Se deconnecter">
+          </form>
+        </span>
+        </a>
+      </li>
+      
+    </ul>
+</nav>
+
+  <!-- Content -->
+  
+  <div class="content">
+    <div class="flex-grow-1" id="main-content">
+      <div class="container mt-4">
+        <!-- Welcome Panel -->
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <div class="row align-items-center">
+              <!-- Welcome Message -->
+              <div class="col-md-6">
+                <h4>Bienvenu, {{user.username}}!</h4>
+                <p>Gérez votre plateforme efficacement avec les outils ci-dessous.</p>
+              </div>
+
+              <div>
+                <form method="POST" style="display: flex; align-items: center;" action="{% url 'filter_order_by_date' %}">
+                  {% csrf_token %}
+
+                  <!-- Search Bar -->
+                  <div class="col-md-3">
+                      <input
+                          type="text"
+                          id="searchBar"
+                          name="searchBar"
+                          class="form-control"
+                          placeholder="Rechercher..."
+                          aria-label="Search"
+                        />
+                  </div>
+
+                  <!-- Date Picker -->
+                  <div class="col-md-3 text-end" style='margin-left:9px;'>
+                    <input
+                      type="date"
+                      id="datePicker"
+                      name="datePicker"
+                      class="form-control"
+                      aria-label="Pick a Date"
+                    />
+                  </div>
+                  <div class="col-md-3">
+                    <input
+                      type="submit" value="Afficher" style='margin-left:50px; height: 35px;'
+                    />
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+      </div>
+        
+    </div>
+      
+        <!-- Top Bar -->
+        <div class="d-flex justify-content-between align-items-center p-3" id="command-box">
+            <i class="fas fa-bars"></i>
+          </button>
+          <h3>Commandes</h3>
+          <div class="d-flex">
+            <button type="button" class="btn btn-light" style="margin-right: 5px;" onclick="window.location.href=`{% url 'download_excel' %}`"><i class="bi bi-download"></i>Exporter</button>
+            <button type="button" class="btn btn-primary" id="add-new-order-btn" data-bs-toggle="modal" data-bs-target="#exampleModal">Ajouter une commande</button>
+          </div>
+        </div>
+  
+        <!-- Stats Section -->
+        <div class="row mb-4 px-3 justify-content-center">
+          <div class="col-md-3">
+            <div class="card p-3">
+              <h6>Total commandes</h6>
+              <h4>{{ len_orders }}</h4>
+              <!--<small class="text-success">+25.2% last week</small>-->
+            </div>
+          </div>
+          <!--<div class="col-md-3">
+            <div class="card p-3">
+              <h6>Order Items Over Time</h6>
+              <h4>15</h4>
+              <small class="text-success">+18.2% last week</small>
+            </div>
+          </div>-->
+          <div class="col-md-3">
+            <div class="card p-3">
+              <h6>Commandes annulées</h6>
+              <h4>{{ len_orders_canceled }}</h4>
+              <!--<small class="text-danger">-1.2% last week</small>-->
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card p-3">
+              <h6>Commandes livrées</h6>
+              <h4>{{ len_orders_delivered }}</h4>
+              <!--<small class="text-success">+12.2% last week</small>-->
+            </div>
+          </div>
+        </div>
+  
+        <!-- Table Section -->
+        <div class="card p-3 mx-3">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <form method="post" action="{% url 'filter_order_by_status' %}" style="display: flex; align-items: center;">
+                {% csrf_token %}
+                <div class="dropdown" style="margin-right: 15px;">
+                  <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                    {% if preselected_filter %}
+                    {{preselected_filter}}
+                    {% else %}
+                    Actions
+                    {% endif %}
+                  </button>
+                  <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                    <li><button class="dropdown-item" type="button" onclick="selectOption('Tout','all')">Tout</button></li>
+                    <li><button class="dropdown-item" type="button" onclick="selectOption('Annulés','canceled')">Annulés</button></li>
+                    <li><button class="dropdown-item" type="button" onclick="selectOption('Livrés','delivered')">Livrés</button></li>
+                  </ul>
+                </div>
+                <!-- Champ caché pour transmettre la valeur -->
+                <input type="hidden" name="selected_option" id="selectedOption">
+                <button class="btn btn-primary"><input type="submit" name='addInventory' value="Afficher" style="border: none; background: none;"/></button>
+              </form>
+
+            </div>
+            <!--<div>
+              <input type="text" class="form-control" placeholder="Chercher une commande..." style="width: 250px;">
+            </div>-->
+          </div>
+          <table class="table commande-table">
+            <thead>
+              <tr class="align-middle">
+                <th id="hidden-id-orders" hidden></th>
+                <th class="text-center">No</th>
+                <th class="text-center">Infos client</th>
+                <th class="text-center">Commande</th>
+                <th class="text-center">Statut</th>
+                <th class="text-center">Total</th>
+                <th class="text-center">Date</th>
+                <th class="text-center">Livreur</th>
+                <th class="text-center">Modifier</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if orders %}
+                {% for order in orders %}
+                <tr class="align-middle" id="orderline{{forloop.counter}}">
+                  <td id="order-id{{forloop.counter}}" hidden>{{order.a}}</td>
+                  <td class="text-center">#{{ forloop.counter }}</td>
+                  <td class="text-center">{{ order.b }}</td>
+                  <td class="text-center">{{ order.c }}</td>
+                  <td class="text-center">
+                    {% if order.d == 'delivered' %}
+                      <span class="badge bg-success">Livrée</span>
+                    {% elif order.d == 'canceled' %}
+                      <span class="badge bg-danger">Annulé</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Sur place</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-center">{{ order.e }}</td>
+                  <td class="text-center">{{ order.f }}</td>
+                  <td class="text-center">{{ order.g }}</td>
+                  <td class="text-center"><i onclick="editOrder(grande='{{order.l}}',petite='{{order.k}}', status='{{order.d}}',orderLine='orderline{{forloop.counter}}',order_id_='{{order.a}}', client_id='{{order.i}}', deliver_id='{{order.j}}', on_site='{{order.h}}')" id="editBtnOrder-{{order.0}}" class="bi bi-pen"></i></td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <h1 style="text-align: center;">Pas de commandes disponibles</h1>
+              {% endif %}
+              <!-- Add more rows -->
+            </tbody>
+          </table>
+
+          <h4 class="text-center" style="margin-top: 45px;" id="inventaire-box">Inventaire</h4>
+          <div class="card p-3 mx-3">
+            <div class="d-flex justify-content-between justify-content-md-end align-items-center mb-3">
+              <div>
+                <button id="addInventoryBtn" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#addInventoryModal">+ Ajouter</button>
+              </div>
+            </div>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th class="text-center">#</th>
+                  <th class="text-center">Date</th>
+                  <th class="text-center">Grande restantes</th>
+                  <th class="text-center">Mini restantes</th>
+                  <th class="text-center">Total vendu</th>
+                  <th class="text-center">Reste</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-inventory">
+                {% if inventories %}
+                    {% for inventory in inventories %}
+                    <tr class="align-middle">
+                      <td class="text-center">
+                        {{forloop.counter}}
+                      </td>
+                      <td id="date-invetory-field{{forloop.counter}}" class="text-center">
+                        {{inventory.1}}
+                      </td>
+                      <td class="text-center">
+                        {{inventory.2}}
+                      </td>
+                      <td class="text-center">
+                        {{inventory.3}}
+                      </td>
+                      <td class="text-center">
+                        {{inventory.4}}
+                      </td>
+                      <td id="current-remaining-invetory-field{{forloop.counter}}" class="text-center">
+                        {{inventory.5}}
+                      </td>
+                    </tr>
+                    {% endfor %}
+              {% else %}
+                <h1  style="text-align: center;">Pas d'inventaire disponible</h1>
+              {% endif %}
+                <!-- Add more rows -->
+              </tbody>
+            </table>
+            
+        </div>
+        <!-- Analyse -->
+        <div class="justify-content-between justify-content-md-end align-items-center mb-3 d-flex flex-column">
+          <h4 class="text-center" style="margin-top: 45px; width: 30%;" id="analyses-box">Analyses</h4>
+          <form action="{% url 'display_chart' %}" method="POST" class="d-flex" style="width: 30%;">
+            {% csrf_token %}
+            <input type="number" class="form-control text-center" placeholder="Nombre de jours" name="delayChart" id="delayChart">
+            <input type="submit" value="Afficher" class="btn btn-primary btn-sm">
+          </form>
+          <div class="row" style="width: 100%; height: 80%;">
+            <div class="col-md-6 my-5">
+              <canvas id="chart1" style="width:50%;"></canvas>
+            </div>
+            <div class="col-md-6 my-5">
+              <canvas id="chart2" style="width:50%;"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Données -->
+        <h4 class="text-center" style="margin-top: 45px;" id="clients-box">Clients</h4>
+          <div class="card p-3 mx-3">
+            <div class="d-flex justify-content-between justify-content-md-end align-items-center mb-3">
+              <!--<div>
+                <input type="text" class="form-control" placeholder="Search orders" style="width: 250px;">
+              </div>-->
+            </div>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Nom</th>
+                  <th>Numéro</th>
+                  <th>Adresse</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if clients %}
+                    {% for client in clients %}
+                        <tr>
+                            <td>{{client.0}}</td>
+                            <td>{{client.1}}</td>
+                            <td>{{client.2}}</td>
+                            <td>{{client.3}}</td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <h1 style="text-align: center;">Pas de clients aujourd'hui</h1>
+                {% endif %}
+                <!-- Add more rows -->
+              </tbody>
+            </table>
+            
+        </div>
+        
+      </div>
+      
+  </div>
+  
+<!----------------------------------------------------------------------------- modal for edit order normal on deliver --------------------------------------------------------------------------->
+  
+
+    <!-- Add Inventory Modal -->
+<div class="modal fade" id="addInventoryModal" tabindex="-1" data-bs-backdrop="static" aria-labelledby="addInventoryModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addInventoryModalLabel">Ajouter</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form method="POST" action="{% url 'add_inventory'%}">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label for="addDate" class="form-label">Date</label>
+            <input type="date" name='addDate' class="form-control" id="addDate" required>
+          </div>
+          <div class="mb-3">
+            <label for="addGrande" class="form-label">Grande</label>
+            <input type="number" name='addGrande' class="form-control" id="addGrande" required>
+          </div>
+          <div class="mb-3">
+            <label for="addMini" class="form-label">Mini</label>
+            <input type="number" name='addMini' class="form-control" id="addMini" required>
+          </div>
+          <button class="btn btn-primary"><input type="submit" name='addInventory' value="Sauvegarder" style="border: none; background: none;"/></button> <!------------------------------->
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+  <div class="modal fade" id="adminFeatures" tabindex="-1" aria-labelledby="exampleModalLabel2" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="exampleModalLabel2">Admin</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="adminPasswordForm">
+            <div class="mb-3">
+              <label for="adminPassword" class="form-label">Mot de passe admin</label>
+              <input type="password" class="form-control" id="adminPassword" placeholder="Password" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Valider</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <!-- Bootstrap JS -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- JavaScript -->
+<script>
+const sidebar = document.getElementById("sidebar");
+const toggleBtn = document.getElementById("toggleSidebar");
+const content = document.querySelector(".content");
+
+toggleBtn.addEventListener("click", () => {
+  sidebar.classList.toggle("collapsed");
+  content.classList.toggle("collapsed");
+  toggleBtn.classList.toggle("collapsed");
+  //toggleBtn.classList.toggle("bi-arrow-bar-left");
+  //toggleBtn.classList.toggle("bi-arrow-bar-right");
+});
+
+    // Get the button
+const scrollToTopBtn = document.getElementById("scrollToTopBtn");
+
+/* Show or hide the button based on scroll position
+window.onscroll = function() {
+  if (document.body.scrollTop > 200 || document.documentElement.scrollTop > 200) {
+    scrollToTopBtn.style.display = "block";
+  } else {
+    scrollToTopBtn.style.display = "none";
+  }
+};*/
+
+// Function to scroll to the top of the page
+function scrollToTop() {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
+
+
+function setDatasInDom(){  // **************** fonction pour recuperer les Pizzas dans le fichier json pour les introduire dans le formulaire
+
+  var isAdmin = "{{user.is_admin}}";
+  fetch("{% static 'izouapp/data.json' %}")
+  .then(response => {
+    if (!response.ok) {
+        throw new Error('Erreur lors du chargement du fichier JSON');
+    }
+    return response.json(); // Convertit en objet JavaScript
+    })
+  .then(data => {
+    const bouton = document.getElementById('add-new-order-btn');
+
+    if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
+      if(Object.keys(data).length === 0){
+          bouton.setAttribute('data-bs-target', '#notenoughdataModal');
+      }else{
+          bouton.setAttribute('data-bs-target', '#exampleModal');
+          const Pizzas = data.pizza;
+          const extraToppings = data.extratoppings;
+          const InVentory = data.inventory;
+          const DeliveryMen = data.deliveryPersons;
+          const pendingEdits = data.pending_to_edit;
+
+          if(Object.keys(pendingEdits).length !== 0){
+            for(const row of pendingEdits){
+
+              const tR = document.createElement('tr'); 
+              tR.id = row.idRow;
+              tR.classList.add('"text-center"', 'align-middle');
+              tR.innerHTML = row.trFirst;
+
+              const last_Td = document.createElement('td');
+              last_Td.classList.add('text-center');
+
+              const form = document.createElement('form');
+              form.method = 'POST';
+              form.action = "{% url 'edit_order2' %}";
+              form.classList.add('row', 'g-3', 'align-items-center');
+              form.innerHTML = '{% csrf_token %}'
+              form.innerHTML += row.formInnerHTML;
+
+              last_Td.appendChild(form);
+              tR.appendChild(last_Td)
+              document.getElementById('body-pending-order').appendChild(tR);
+            }
+            document.getElementById('number_pending').innerText = document.getElementById('body-pending-order').children.length;
+        }
+
+          listPending = document.getElementsByClassName('confirmPending');
+
+          for(const btn of listPending){
+            if(isAdmin !== "True"){
+              btn.setAttribute('disabled',true);
+            }else{
+              btn.removeAttribute('disabled');
+          }
+            }
+
+          if(Object.keys(data.ordersToChart).length !== 0){
+            var ctx1 = document.getElementById("chart1");
+            var ctx2 = document.getElementById("chart2");
+
+            if(Object.keys(data.ordersToChart).length !== 0){
+              new Chart(ctx1, {
+                type: 'line',
+                data: {labels:data.ordersToChart.days,
+                      datasets:[{label:'Pizzas vendues',
+                                data:data.ordersToChart.sold,
+                                fill: true,
+                                borderColor: 'rgb(0,255,0)'},
+                                {label:'Pizzas non-vendues',
+                                data:data.ordersToChart.unsold,
+                                fill: false,
+                                borderColor: 'rgb(255,0,0)'}]}})
+              }
+
+              const sold = data.ordersToChart.sold.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+              const unsold = data.ordersToChart.unsold.reduce((accumulator, currentValue) => accumulator + currentValue, 0)
+
+              new Chart(ctx2, {
+                type: 'doughnut',
+              data: {labels: [
+                        'Vendues',
+                        'Non vendues'
+                      ],
+                      datasets:[{
+                        label:'Distribution des pizzas vendues / non vendues',
+                                data:[sold,unsold],
+                                fill: true,
+                                borderColor: [
+                                'rgb(66, 211, 13)',
+                                'rgb(218, 35, 22)'
+                                ],
+                                hoverOffset: 4,
+                                }]}})
+              }
+
+          //select-size
+          if (Pizzas.length > 0) {
+            const html = Pizzas.map(pizza => `
+            <option value="${pizza.name}">${pizza.name}</option>
+            `).join('');
+            const elements = document.getElementsByClassName('select-pizza');
+            for (let i = 0; i < elements.length; i++) {
+              elements[i].innerHTML = `
+            <option selected>Nom</option>
+            `;
+              elements[i].innerHTML += html;
+          }}else {
+            for (let i = 0; i < elements.length; i++) {
+              elements[i].innerHTML = '<option disabled>Aucune pizza disponible</option>';
+          }}
+
+
+          const elements1 = document.getElementById('select-toppings-for-normal-pizza-to-deliver');
+          const elements11 = document.getElementById('edit-select-toppings-for-normal-pizza-to-deliver');
+
+          const elements2 = document.getElementById('select-toppings-for-special-pizza-to-deliver');
+          const elements22 = document.getElementById('edit-select-toppings-for-special-pizza-to-deliver');
+
+          const elements3 = document.getElementById('select-toppings-for-normal-pizza-on-site');
+          const elements33 = document.getElementById('edit-select-toppings-for-normal-pizza-on-site');
+
+          const elements4 = document.getElementById('select-toppings-for-special-pizza-on-site');
+          const elements44 = document.getElementById('edit-select-toppings-for-special-pizza-on-site');          
+
+          if (extraToppings.length > 0) {
+              const html1 = extraToppings.map((topping, index) => `
+              <li>
+                <label class="dropdown-item">
+                  <input type="checkbox" name="supplements_for_normal_pizza${index}_from_order_to_deliver" id="supplements_for_normal_pizza${index}_from_order_to_deliver" value="${topping.name}" class="form-check-input me-2"> ${topping.name}
+                </label>
+              </li>
+              `).join('');
+
+              const html11 = extraToppings.map((topping, index) => `
+              <li>
+                <label class="dropdown-item">
+                  <input type="checkbox" name="supplements_for_normal_pizza${index}_from_order_to_deliver" id="edit_supplements_for_normal_pizza${index}_from_order_to_deliver" value="${topping.name}" class="form-check-input me-2"> ${topping.name}
+                </label>
+              </li>
+              `).join('');
+              const html2 = extraToppings.map((topping, index) => `
+              <li>
+                <label class="dropdown-item">
+                  <input type="checkbox" name="supplements_for_special_pizza${index}_from_order_to_deliver" id="supplements_for_special_pizza${index}_from_order_to_deliver" value="${topping.name}" class="form-check-input me-2"> ${topping.name}
+                </label>
+              </li>
+              `).join('');
+
+              const html22 = extraToppings.map((topping, index) => `
+              <li>
+                <label class="dropdown-item">
+                  <input type="checkbox" name="supplements_for_special_pizza${index}_from_order_to_deliver" id="edit_supplements_for_special_pizza${index}_from_order_to_deliver" value="${topping.name}" class="form-check-input me-2"> ${topping.name}
+                </label>
+              </li>
+              `).join('');
+              const html3 = extraToppings.map((topping, index) => `
+              <li>
+                <label class="dropdown-item">
+                  <input type="checkbox" name="supplements_for_normal_pizza${index}_from_order_on_site" id="supplements_for_normal_pizza${index}_from_order_on_site" value="${topping.name}" class="form-check-input me-2"> ${topping.name}
+                </label>
+              </li>
+              `).join('');
+
+              const html33 = extraToppings.map((topping, index) => `
+              <li>
+                <label class="dropdown-item">
+                  <input type="checkbox" name="supplements_for_normal_pizza${index}_from_order_on_site" id="edit_supplements_for_normal_pizza${index}_from_order_on_site" value="${topping.name}" class="form-check-input me-2"> ${topping.name}
+                </label>
+              </li>
+              `).join('');
+              const html4 = extraToppings.map((topping, index) => `
+              <li>
+                <label class="dropdown-item">
+                  <input type="checkbox" name="supplements_for_special_pizza${index}_from_order_on_site" id="supplements_for_special_pizza${index}_from_order_on_site" value="${topping.name}" class="form-check-input me-2"> ${topping.name}
+                </label>
+              </li>
+              `).join('');
+
+              const html44 = extraToppings.map((topping, index) => `
+              <li>
+                <label class="dropdown-item">
+                  <input type="checkbox" name="supplements_for_special_pizza${index}_from_order_on_site" id="edit_supplements_for_special_pizza${index}_from_order_on_site" value="${topping.name}" class="form-check-input me-2"> ${topping.name}
+                </label>
+              </li>
+              `).join('');
+
+              
+
+              elements1.innerHTML = html1;
+              elements11.innerHTML = html11;
+              elements2.innerHTML = html2;
+              elements22.innerHTML = html22;
+              elements3.innerHTML = html3;
+              elements33.innerHTML = html33;
+              elements4.innerHTML = html4;
+              elements44.innerHTML = html44;
+              
+            } else {
+                const htmlempty = `
+                  <li>
+                    <label class="dropdown-item">
+                      Pas de supplement disponible
+                    </label>
+                  </li>
+                  `;
+
+                  elements1.innerHTML = htmlempty;
+                  elements11.innerHTML = htmlempty;
+                  elements2.innerHTML = htmlempty;
+                  elements22.innerHTML = htmlempty;
+                  elements3.innerHTML = htmlempty;
+                  elements33.innerHTML = htmlempty;
+                  elements4.innerHTML = htmlempty;
+                  elements44.innerHTML = htmlempty;
+            }
+            const elements =  document.getElementsByClassName('select-size');
+            const small_size_html = InVentory[0].pizzas_count > 0 ? `<option value="${InVentory[0].name}">${InVentory[0].name}</option>`: `<option disabled>${InVentory[0].name}</option>`;
+            const large_size_html = InVentory[1].pizzas_count > 0 ? `<option value="${InVentory[1].name}">${InVentory[1].name}</option>`: `<option disabled>${InVentory[1].name}</option>`; 
+            
+            const html = [small_size_html,large_size_html].join('');
+
+            for (let i = 0; i < elements.length; i++) {
+              elements[i].innerHTML = `
+            <option selected>Taille</option>
+            `;
+            elements[i].innerHTML += html;
+            }
+            const element = document.getElementById('delivery_man');
+            if(DeliveryMen.length > 0){
+
+              const html = DeliveryMen.map(delivery_man =>`
+                <option value="${delivery_man}">${delivery_man}</option>
+              `).join('');
+              element.innerHTML = `
+              <option selected>Nom du livreur</option>
+              `;
+              element.innerHTML += html;
+                                      }
+            else{
+              element.innerHTML = `
+                <option disabled>Aucun livreur enregistré</option>
+              `
+                }
+
+        }}
+        else{
+          console.log("data n'est pas un objet")
+            }
+      insertSoldSizePizzaInForm('new-order')
+      })
+    .catch(error => {
+        console.log('Erreur lors du chargement des données', error);
+                    }
+          )
+};
+
+function transformerDate(dateStr) {
+  const mois = {
+      "janvier": "01", "février": "02", "mars": "03", "avril": "04",
+      "mai": "05", "juin": "06", "juillet": "07", "août": "08",
+      "septembre": "09", "octobre": "10", "novembre": "11", "décembre": "12"
+  };
+
+  // Découper la chaîne en parties
+  const [jour, moisTexte, annee] = dateStr.split(" ");
+
+  // Convertir le mois en chiffre
+  const moisChiffre = mois[moisTexte.toLowerCase()];
+
+  // Retourner la date au format souhaité
+  return `${jour}-${moisChiffre}-${annee}`;
+}
+
+function reformaterDate(dateStr) {
+  // Diviser la chaîne en parties
+  const [annee, mois, jour] = dateStr.split("-");
+  
+  // Réorganiser au format souhaité
+  return `${jour}-${mois}-${annee}`;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+
+  const calendarDisplay = document.getElementById('calendarDisplay');
+  const datePicker = document.getElementById('datePicker');
+  const today = new Date();
+  var isSuperuser = "{{user.is_superuser}}";
+  if(isSuperuser === "True"){
+    document.getElementById('admin_url').removeAttribute('hidden');
+  }else{
+    document.getElementById('admin_url').setAttribute('hidden', true);
+  }
+
+  const preselectedDatetime = "{{ preselected_datetime|escapejs }}";
+
+  const formattedDate = preselectedDatetime
+  ? new Date(preselectedDatetime).toISOString().split('T')[0]
+  : today.toISOString().split('T')[0];
+
+  datePicker.value = formattedDate;
+
+  // Display today's date in a readable format
+  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  //calendarDisplay.textContent = new Date(preselectedDatetime || today).toLocaleDateString('en-US', options);
+
+  //date-invetory-field
+  if(document.getElementById('date-invetory-field1')){
+    const dateFromFirstInventory = transformerDate(document.getElementById('date-invetory-field1').innerText);
+    if(dateFromFirstInventory === reformaterDate(formattedDate)){
+      document.getElementById('addInventoryBtn').setAttribute('disabled', true);
+    }else{
+      document.getElementById('addInventoryBtn').removeAttribute('disabled')
+    }
+  }
+
+  
+  setDatasInDom();
+});
+
+function selectOption(displayText, value) {
+  // Met à jour le texte du bouton
+    document.getElementById('dropdownMenuButton1').innerText = displayText;
+
+    // Met à jour la valeur du champ caché
+    document.getElementById('selectedOption').value = value;
+
+    // regle le calendrier à la date choisie
+    const calendarDisplay = document.getElementById('calendarDisplay');
+    const datePicker = document.getElementById('datePicker');
+    const today = new Date();
+
+    const preselectedDatetime = "{{ preselected_datetime|escapejs }}";
+
+    const formattedDate = preselectedDatetime
+    ? new Date(preselectedDatetime).toISOString().split('T')[0]
+    : today.toISOString().split('T')[0];
+
+    datePicker.value = formattedDate;
+
+    // Display today's date in a readable format
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    calendarDisplay.textContent = new Date(preselectedDatetime || today).toLocaleDateString('en-US', options);
+}
+
+function delivery() {
+  document.getElementById('addOrderDelivery').style.display = 'block';
+  document.getElementById('addOrderSite').style.display = 'none';
+}
+
+function site() {
+  document.getElementById('addOrderDelivery').style.display = 'none';
+  document.getElementById('addOrderSite').style.display = 'block'
+}
+
+function toggleForm(formId) {
+  // Hide both forms
+  document.getElementById('addForm').style.display = 'none';
+  document.getElementById('modifyForm').style.display = 'none';
+
+  // Show the selected form
+  document.getElementById(formId).style.display = 'block';
+}
+
+async function getPizzaPrize(size){ // fonction pour obtenir le prix etant donné la taille d'une pizza
+  try {
+    const response = await fetch("{% static 'izouapp/data.json' %}");
+    if (!response.ok) {
+      throw new Error('Erreur lors du chargement du fichier JSON');
+    }
+    const data = await response.json();
+    const inventoryPrice = data.inventory;
+
+    // Recherche de la taille correspondante
+    const matchingItem = inventoryPrice.find(item => item.name === size);
+    if (matchingItem) {
+      return matchingItem.Price; // Assurez-vous que la propriété est correctement nommée dans JSON
+    } else {
+      throw new Error(`La taille ${size} n'a pas été trouvée dans l'inventaire.`);
+    }
+  } catch (error) {
+    console.error('Erreur : ', error.message);
+    throw error; // Relance l'erreur pour le gestionnaire d'appel
+  }
+}
+      
+async function getToppingPrices(toppings) { // fonction pour obtenir le prix etant donné le nom d'un ou plusieurs supplements
+  try {
+    const response = await fetch("{% static 'izouapp/data.json' %}");
+    if (!response.ok) {
+      throw new Error('Erreur lors du chargement du fichier JSON');
+    }
+    const data = await response.json();
+    const topPings = data.extratoppings;
+
+    let price = 0; // Utilisation de let pour permettre l'incrémentation
+
+    toppings.forEach(topping => {
+      const matchingTopping = topPings.find(top => top.name === topping);
+      if (matchingTopping) {
+        price += matchingTopping.price;
+      }
+    });
+
+    return price; // Retour de la somme totale
+  } catch (error) {
+    console.error('Erreur lors du chargement des données', error);
+    throw error; // Relance l'erreur pour le gestionnaire d'appel
+  }
+}
+
+async function AddNormalPizzaToDeliverToInvoice(idBtn,errorid,summary_box) { // **************** fonction pour ajouter les Pizzas Normales à la facture
+  const pizzaExtraToppings = [];
+  const summaryBox = document.getElementById(summary_box);
+  // Créer l'élément div
+
+  const divChild = document.createElement('div');
+  divChild.classList.add('row');
+  divChild.classList.add('my-1');
+  
+  divChild.style = "align-items: center;";
+
+  if(idBtn==='btn-add-normal-deliver'){ // si la pizza ajoutée l'est à partir d'un formulaire de nouvelle commande
+    
+    const pizzaName = document.getElementById('pizza_name_to_deliver').value;
+    const pizzaSize = document.getElementById('normal_pizza_size_to_deliver').value;
+    const parentToppings = document.getElementById('select-toppings-for-normal-pizza-to-deliver');
+
+    // Récupérer les toppings sélectionnés (checkboxes ou inputs)
+    for (let i = 0; i < parentToppings.children.length; i++) {
+      if(document.getElementById(`supplements_for_normal_pizza${i}_from_order_to_deliver`)){
+        if(document.getElementById(`supplements_for_normal_pizza${i}_from_order_to_deliver`).checked){ // Assurez-vous que ce sont des checkboxes cochés
+          pizzaExtraToppings.push(document.getElementById(`supplements_for_normal_pizza${i}_from_order_to_deliver`).value);
+        }
+      }
+    }
+
+    if(['','Nom'].includes(pizzaName) || ['','Taille'].includes(pizzaSize)){
+      document.getElementById(errorid).innerText = "Données invalides ou insuffisantes";
+      return
+    }
+
+    try {
+      // Attendre la résolution des promesses
+      const pizzaPrice = await getPizzaPrize(pizzaSize);
+      const toppingPrices = await getToppingPrices(pizzaExtraToppings);
+  
+      const total_Price = pizzaPrice + toppingPrices;
+  
+      const summaryBox = document.getElementById(summary_box);
+  
+      const html = `
+          <input type="text" class='col-md-2 mx-1' id="name" value="${pizzaName}" disabled>
+          <input type="text" class='col-md-2 mx-1' id="size" value="${pizzaSize}" disabled>
+          <input type="text" class='col-md-2 mx-1' id="extratoppings" value="${pizzaExtraToppings.join(', ')}" disabled>
+          <input type="text" class='col-md-2 mx-1' id="price" value="${total_Price}" disabled>
+          <button class="btn btn-danger col-md-4" style="width: 20%; margin: 8px" onclick="deleteItemFromInvoice(taille='${pizzaSize}',event, '${summary_box}')" type="button">
+              Supprimer
+          </button>
+      `;
+  
+      let html_reg = html;
+      let regex = /<button[\s\S]*?>[\s\S]*?<\/button>/g;
+  
+      let result = html_reg.replace(regex, "///");
+  
+      // Construire le contenu HTML avec interpolation
+      document.getElementById("errorspan1").innerText = ""
+      divChild.innerHTML = html;
+      
+      // Ajouter le div au conteneur
+      summaryBox.appendChild(divChild);
+      setSizeSelectHTMLAndChar(taille=pizzaSize,a='smallPizzasAvailableOnSite',b='largePizzasAvailableOnSite',c='normal_pizza_size_onsite',d='special_pizza_size_onsite');
+      setSizeSelectHTMLAndChar(taille=pizzaSize,a='smallPizzasAvailableOnDelivery',b='largePizzasAvailableOnDelivery',c='normal_pizza_size_to_deliver',d='pizza_half_size_to_deliver');
+      document.getElementById('hidden-textarea-from-order-on-delivery').value += html;
+      document.getElementById('hidden-textarea-from-order-on-delivery1').value += result; // nettoyé
+    }
+    catch (error) {
+      console.error('Erreur lors du calcul du prix total :', error);
+    }
+  }else{ // si la pizza ajoutée l'est à partir d'un formulaire d'édition de commande 
+    const pizzaName = document.getElementById('editPizzaNameToDeliver').value;
+    const pizzaSize = document.getElementById('editNormalPizzaSizeToDeliver').value;
+    const parentToppings = document.getElementById('edit-select-toppings-for-normal-pizza-to-deliver');
+
+    // Récupérer les toppings sélectionnés (checkboxes ou inputs)
+    for (let i = 0; i < parentToppings.children.length; i++) {
+      if(document.getElementById(`edit_supplements_for_normal_pizza${i}_from_order_to_deliver`)){
+        if(document.getElementById(`edit_supplements_for_normal_pizza${i}_from_order_to_deliver`).checked){ // Assurez-vous que ce sont des checkboxes cochés
+          pizzaExtraToppings.push(document.getElementById(`edit_supplements_for_normal_pizza${i}_from_order_to_deliver`).value);
+        }
+      }
+    }
+
+    if(['','Nom'].includes(pizzaName) || ['','Taille'].includes(pizzaSize)){
+      document.getElementById(errorid).innerText = "Données invalides ou insuffisantes";
+      return
+    }
+
+    try {
+      // Attendre la résolution des promesses
+      const pizzaPrice = await getPizzaPrize(pizzaSize);
+      const toppingPrices = await getToppingPrices(pizzaExtraToppings);
+  
+      const total_Price = pizzaPrice + toppingPrices;
+  
+      const html = `
+          <input type="text" class='col-md-2 mx-1' id="name" value="${pizzaName}" disabled>
+          <input type="text" class='col-md-2 mx-1' id="size" value="${pizzaSize}" disabled>
+          <input type="text" class='col-md-2 mx-1' id="extratoppings" value="${pizzaExtraToppings.join(', ')}" disabled>
+          <input type="text" class='col-md-2 mx-1' id="price" value="${total_Price}" disabled>
+          <button class="btn btn-danger col-md-4" style="width: 20%; margin: 8px" onclick="deleteItemFromInvoice(taille='${pizzaSize}',event, '${summary_box}')" type="button">
+              Supprimer
+          </button>
+      `;
+  
+      let html_reg = html;
+      let regex = /<button[\s\S]*?>[\s\S]*?<\/button>/g;
+  
+      let result = html_reg.replace(regex, "///");
+  
+      // Construire le contenu HTML avec interpolation
+      document.getElementById("errorspan1").innerText = ""
+      divChild.innerHTML = html;
+      
+      // Ajouter le div au conteneur
+      summaryBox.appendChild(divChild);
+      setSizeSelectHTMLAndChar(taille=pizzaSize,a='edit-SmallPizzasAvailableOnDelivery',b='edit-LargePizzasAvailableOnDelivery',c='editNormalPizzaSizeToDeliver',d='edit_pizza_half_size_to_deliver');
+      document.getElementById('edit-hidden-textarea-from-order-on-delivery').value += html;
+      document.getElementById('edit-hidden-textarea-from-order-on-delivery1').value += result; // nettoyé
+    }
+    catch (error) {
+      console.error('Erreur lors du calcul du prix total :', error);
+    }
+  }
+}
+
+async function AddSpecialPizzaToDeliverToInvoice(idBtn,errorid,summary_box) { // **************** fonction pour ajouter les Pizzas Speciales à la facture
+  const pizzaExtraToppings = [];
+  
+  const divChild = document.createElement('div');
+
+  const summaryBox = document.getElementById(summary_box);
+
+  divChild.classList.add('row');
+  divChild.classList.add('my-1');
+  divChild.style = "align-items: center;";
+
+  if(idBtn==='btn-add-special-deliver'){
+
+    const pizzaHalf1 = document.getElementById('pizza_half1_to_deliver').value;
+    const pizzaHalf2 = document.getElementById('pizza_half2_to_deliver').value;
+    const pizzaSize = document.getElementById('pizza_half_size_to_deliver').value;
+
+    // Récupérer les toppings sélectionnés (checkboxes ou inputs)
+    
+
+    const parentToppings = document.getElementById('select-toppings-for-special-pizza-to-deliver');
+
+    for (let i = 0; i < parentToppings.children.length; i++) {
+      if(document.getElementById(`supplements_for_special_pizza${i}_from_order_to_deliver`)){
+        if(document.getElementById(`supplements_for_special_pizza${i}_from_order_to_deliver`).checked){ // Assurez-vous que ce sont des checkboxes cochés
+          pizzaExtraToppings.push(document.getElementById(`supplements_for_special_pizza${i}_from_order_to_deliver`).value);
+        }
+      }
+    }
+
+    if(['','Nom'].includes(pizzaHalf1) || ['','Nom'].includes(pizzaHalf2) || ['','Taille'].includes(pizzaSize)){
+      document.getElementById(errorid).innerText = "Données invalides ou insuffisantes";
+      return
+    }
+
+  try {
+    // Attendre la résolution des promesses
+    const pizzaPrice = await getPizzaPrize(pizzaSize);
+    const toppingPrices = await getToppingPrices(pizzaExtraToppings);
+
+    const total_Price = pizzaPrice + toppingPrices;
+
+    const html = `
+        <input type="text" class='col-md-2 mx-1' id="name" value="${pizzaHalf1 + ' - ' + pizzaHalf2}" disabled>
+        <input type="text" class='col-md-2 mx-1' id="size" value="${pizzaSize}" disabled>
+        <input type="text" class='col-md-2 mx-1' id="extratoppings" value="${pizzaExtraToppings.join(', ')}" disabled>
+        <input type="text" class='col-md-2 mx-1' id="price" value="${total_Price}" disabled>
+        <button class="btn  col-md-4 btn-danger" style="width: 20%; margin: 8px" onclick="deleteItemFromInvoice(taille='${pizzaSize}',event, '${summary_box}')" type="button">
+            Supprimer
+        </button>
+    `;
+
+    let html_reg = html;
+    let regex = /<button[\s\S]*?>[\s\S]*?<\/button>/g;
+
+    let result = html_reg.replace(regex, "///");
+
+    // Construire le contenu HTML avec interpolation
+    document.getElementById(errorid).innerText = "";
+    divChild.innerHTML = html;
+
+    // Ajouter le div au conteneur
+    summaryBox.appendChild(divChild);
+    setSizeSelectHTMLAndChar(taille=pizzaSize,a='smallPizzasAvailableOnSite',b='largePizzasAvailableOnSite',c='normal_pizza_size_onsite',d='special_pizza_size_onsite');
+    setSizeSelectHTMLAndChar(taille=pizzaSize, a='smallPizzasAvailableOnDelivery',b='largePizzasAvailableOnDelivery',c='normal_pizza_size_to_deliver',d='pizza_half_size_to_deliver');
+    document.getElementById('hidden-textarea-from-order-on-delivery').value += html;
+    document.getElementById('hidden-textarea-from-order-on-delivery1').value += result; // nettoyé
+  }
+  catch (error) {
+      console.error('Erreur lors du calcul du prix total :', error);
+    }
+  }else{
+    const pizzaHalf1 = document.getElementById('edit_pizza_half1_to_deliver').value;
+    const pizzaHalf2 = document.getElementById('edit_pizza_half2_to_deliver').value;
+    const pizzaSize = document.getElementById('edit_pizza_half_size_to_deliver').value;
+
+    // Récupérer les toppings sélectionnés (checkboxes ou inputs)
+  
+
+    const parentToppings = document.getElementById('edit-select-toppings-for-special-pizza-to-deliver');
+
+    for (let i = 0; i < parentToppings.children.length; i++) {
+      if(document.getElementById(`edit_supplements_for_special_pizza${i}_from_order_to_deliver`)){
+        if(document.getElementById(`edit_supplements_for_special_pizza${i}_from_order_to_deliver`).checked){ // Assurez-vous que ce sont des checkboxes cochés
+          pizzaExtraToppings.push(document.getElementById(`edit_supplements_for_special_pizza${i}_from_order_to_deliver`).value);
+        }
+      }
+    }
+
+    if(['','Nom'].includes(pizzaHalf1) || ['','Nom'].includes(pizzaHalf2) || ['','Taille'].includes(pizzaSize)){
+      document.getElementById(errorid).innerText = "Données invalides ou insuffisantes";
+      return
+    }
+
+  try {
+    // Attendre la résolution des promesses
+    const pizzaPrice = await getPizzaPrize(pizzaSize);
+    const toppingPrices = await getToppingPrices(pizzaExtraToppings);
+
+    const total_Price = pizzaPrice + toppingPrices;
+
+    const html = `
+        <input type="text" class='col-md-2 mx-1' id="name" value="${pizzaHalf1 + ' - ' + pizzaHalf2}" disabled>
+        <input type="text" class='col-md-2 mx-1' id="size" value="${pizzaSize}" disabled>
+        <input type="text" class='col-md-2 mx-1' id="extratoppings" value="${pizzaExtraToppings.join(', ')}" disabled>
+        <input type="text" class='col-md-2 mx-1' id="price" value="${total_Price}" disabled>
+        <button class="btn  col-md-4 btn-danger" style="width: 20%; margin: 8px" onclick="deleteItemFromInvoice(taille='${pizzaSize}',event, '${summary_box}')" type="button">
+            Supprimer
+        </button>
+    `;
+
+    let html_reg = html;
+    let regex = /<button[\s\S]*?>[\s\S]*?<\/button>/g;
+
+    let result = html_reg.replace(regex, "///");
+
+    // Construire le contenu HTML avec interpolation
+    document.getElementById(errorid).innerText = "";
+    divChild.innerHTML = html;
+
+    // Ajouter le div au conteneur
+    summaryBox.appendChild(divChild);
+    setSizeSelectHTMLAndChar(taille=pizzaSize, a='edit-SmallPizzasAvailableOnDelivery',b='edit-LargePizzasAvailableOnDelivery',c='editNormalPizzaSizeToDeliver',d='edit_pizza_half_size_to_deliver');
+    document.getElementById('edit-hidden-textarea-from-order-on-delivery').value += html;
+    document.getElementById('edit-hidden-textarea-from-order-on-delivery1').value += result; // nettoyé
+  }
+  catch (error) {
+      console.error('Erreur lors du calcul du prix total :', error);
+    }
+  }
+}
+
+async function AddNormalPizzaOnSiteToInvoice(idBtn,errorid,summary_box) { // **************** fonction pour ajouter les Pizzas Normales à la facture
+  const pizzaExtraToppings = [];
+  const summaryBox = document.getElementById(summary_box);
+
+  // Créer l'élément div
+  const divChild = document.createElement('div');
+  divChild.classList.add('row');
+  divChild.classList.add('my-1');
+  divChild.style = "align-items: center;";
+
+
+  if(idBtn==='btn-add-normal-on-site'){ // si la pizza ajoutée l'est à partir d'un formulaire d'ajout de nouvelle commande
+    const pizzaName = document.getElementById('pizza_name_onsite').value;
+    const pizzaSize = document.getElementById('normal_pizza_size_onsite').value;
+
+    
+    // Récupérer les toppings sélectionnés (checkboxes ou inputs)
+
+    const parentToppings = document.getElementById('select-toppings-for-normal-pizza-on-site');
+
+    for (let i = 0; i < parentToppings.children.length; i++) {
+      if(document.getElementById(`supplements_for_normal_pizza${i}_from_order_on_site`)){
+        if(document.getElementById(`supplements_for_normal_pizza${i}_from_order_on_site`).checked){ // Assurez-vous que ce sont des checkboxes cochés
+          pizzaExtraToppings.push(document.getElementById(`supplements_for_normal_pizza${i}_from_order_on_site`).value);
+        }
+      }
+    }
+
+    if(['','Nom'].includes(pizzaName) || ['','Taille'].includes(pizzaSize)){
+      document.getElementById(errorid).innerText = "Données invalides ou insuffisantes";
+      return
+    }
+
+    try {
+      // Attendre la résolution des promesses
+      const pizzaPrice = await getPizzaPrize(pizzaSize);
+      const toppingPrices = await getToppingPrices(pizzaExtraToppings);
+  
+      const total_Price = pizzaPrice + toppingPrices;
+  
+      const html = `
+          <input type="text" class='col-md-2 mx-1' id="name" value="${pizzaName}" disabled>
+          <input type="text" class='col-md-2 mx-1' id="size" value="${pizzaSize}" disabled>
+          <input type="text" class='col-md-2 mx-1' id="extratoppings" value="${pizzaExtraToppings.join(', ')}" disabled>
+          <input type="text" class='col-md-2 mx-1' id="price" value="${total_Price}" disabled>
+          <button class="btn col-md-4 btn-danger" style="width: 20%; margin: 8px" onclick="deleteItemFromInvoice(taille='${pizzaSize}',event, '${summary_box}')" type="button">
+              Supprimer
+          </button>
+      `;
+  
+      let html_reg = html;
+      let regex = /<button[\s\S]*?>[\s\S]*?<\/button>/g;
+  
+      let result = html_reg.replace(regex, "///");
+  
+      // Construire le contenu HTML avec interpolation
+      document.getElementById(errorid).innerText = "";
+      divChild.innerHTML = html;
+      
+      // Ajouter le div au conteneur
+      summaryBox.appendChild(divChild);
+      setSizeSelectHTMLAndChar(taille=pizzaSize,a='smallPizzasAvailableOnSite',b='largePizzasAvailableOnSite',c='normal_pizza_size_onsite',d='special_pizza_size_onsite');
+      setSizeSelectHTMLAndChar(taille=pizzaSize,a='smallPizzasAvailableOnDelivery',b='largePizzasAvailableOnDelivery',c='normal_pizza_size_to_deliver',d='pizza_half_size_to_deliver');
+      document.getElementById('hidden-textarea-from-order-on-site').value += html;
+      document.getElementById('hidden-textarea-from-order-on-site1').value += result; // nettoyé
+    }catch (error) {
+      console.error('Erreur lors du calcul du prix total :', error);
+    }
+  }else{ // si la pizza ajoutée l'est à partir d'un formulaire d'edition de nouvelle commande
+
+    //
+    const pizzaName = document.getElementById('edit_pizza_name_onsite').value;
+    const pizzaSize = document.getElementById('edit_normal_pizza_size_onsite').value;
+    
+    // Récupérer les toppings sélectionnés (checkboxes ou inputs)
+
+    const parentToppings = document.getElementById('edit-select-toppings-for-normal-pizza-on-site');
+
+    for (let i = 0; i < parentToppings.children.length; i++) {
+      if(document.getElementById(`edit_supplements_for_normal_pizza${i}_from_order_on_site`)){
+        if(document.getElementById(`edit_supplements_for_normal_pizza${i}_from_order_on_site`).checked){ // Assurez-vous que ce sont des checkboxes cochés
+          pizzaExtraToppings.push(document.getElementById(`edit_supplements_for_normal_pizza${i}_from_order_on_site`).value);
+        }
+      }
+    }
+
+    if(['','Nom'].includes(pizzaName) || ['','Taille'].includes(pizzaSize)){
+      document.getElementById(errorid).innerText = "Données invalides ou insuffisantes";
+      return
+    }
+
+    try {
+      // Attendre la résolution des promesses
+      const pizzaPrice = await getPizzaPrize(pizzaSize);
+      const toppingPrices = await getToppingPrices(pizzaExtraToppings);
+  
+      const total_Price = pizzaPrice + toppingPrices;
+  
+      const html = `
+          <input type="text" class='col-md-2 mx-1' id="name" value="${pizzaName}" disabled>
+          <input type="text" class='col-md-2 mx-1' id="size" value="${pizzaSize}" disabled>
+          <input type="text" class='col-md-2 mx-1' id="extratoppings" value="${pizzaExtraToppings.join(', ')}" disabled>
+          <input type="text" class='col-md-2 mx-1' id="price" value="${total_Price}" disabled>
+          <button class="btn col-md-4 btn-danger" style="width: 20%; margin: 8px" onclick="deleteItemFromInvoice(taille='${pizzaSize}',event, '${summary_box}')" type="button">
+              Supprimer
+          </button>
+      `;
+  
+      let html_reg = html;
+      let regex = /<button[\s\S]*?>[\s\S]*?<\/button>/g;
+  
+      let result = html_reg.replace(regex, "///");
+  
+      // Construire le contenu HTML avec interpolation
+      document.getElementById(errorid).innerText = "";
+      divChild.innerHTML = html;
+      
+      // Ajouter le div au conteneur
+      summaryBox.appendChild(divChild);
+      setSizeSelectHTMLAndChar(taille=pizzaSize,a='edit-SmallPizzasAvailableOnSite',b='edit-LargePizzasAvailableOnSite',c='edit_normal_pizza_size_onsite',d='edit_special_pizza_size_onsite');
+      document.getElementById('edit-hidden-textarea-from-order-on-site').value += html;
+      document.getElementById('edit-hidden-textarea-from-order-on-site1').value += result; // nettoyé
+    }catch (error) {
+      console.error('Erreur lors du calcul du prix total :', error);
+    }
+  }
+}
+
+async function AddSpecialPizzaOnSiteToInvoice(idBtn,errorid,summary_box) { // **************** fonction pour ajouter les Pizzas Speciales à la facture
+
+  const pizzaExtraToppings = [];
+  
+  // Créer l'élément div
+  const summaryBox = document.getElementById(summary_box);
+  const divChild = document.createElement('div');
+  divChild.classList.add('row');
+  divChild.classList.add('my-2');
+
+
+  if(idBtn==='btn-add-special-on-site'){
+
+    const pizzaHalf1 = document.getElementById('pizza_half1_onsite').value;
+    const pizzaHalf2 = document.getElementById('pizza_half2_onsite').value;
+    const pizzaSize = document.getElementById('special_pizza_size_onsite').value; 
+
+    // Récupérer les toppings sélectionnés (checkboxes ou inputs)
+    const parentToppings = document.getElementById('select-toppings-for-special-pizza-on-site')
+
+    for (let i = 0; i < parentToppings.children.length; i++) {
+      if(document.getElementById(`supplements_for_special_pizza${i}_from_order_on_site`)){
+        if(document.getElementById(`supplements_for_special_pizza${i}_from_order_on_site`).checked){ // Assurez-vous que ce sont des checkboxes cochés
+          pizzaExtraToppings.push(document.getElementById(`supplements_for_special_pizza${i}_from_order_on_site`).value);
+        }
+      }
+    }
+
+    if(['','Nom'].includes(pizzaHalf1) || ['','Nom'].includes(pizzaHalf2) || ['','Taille'].includes(pizzaSize)){
+      document.getElementById(errorid).innerText = "Données invalides ou insuffisantes";
+      return
+    }
+
+    try {
+      // Attendre la résolution des promesses
+      const pizzaPrice = await getPizzaPrize(pizzaSize);
+      const toppingPrices = await getToppingPrices(pizzaExtraToppings);
+
+      const total_Price = pizzaPrice + toppingPrices;
+
+      const html = `
+          <input type="text" class='col-md-2 mx-1' id="name" value="${pizzaHalf1 + ' - ' + pizzaHalf2}" disabled>
+          <input type="text" class='col-md-2 mx-1' id="size" value="${pizzaSize}" disabled>
+          <input type="text" class='col-md-2 mx-1' id="extratoppings" value="${pizzaExtraToppings.join(', ')}" disabled>
+          <input type="text" class='col-md-2 mx-1' id="price" value="${total_Price}" disabled>
+          <button class="btn col-md-4 btn-danger" style="width: 20%; margin: 8px" onclick="deleteItemFromInvoice(taille='${pizzaSize}',event, '${summary_box}')" type="button">
+              Supprimer
+          </button>
+      `;
+
+      let html_reg = html;
+      let regex = /<button[\s\S]*?>[\s\S]*?<\/button>/g;
+
+      let result = html_reg.replace(regex, "///");
+
+      // Construire le contenu HTML avec interpolation
+      document.getElementById(errorid).innerText = "";
+      divChild.style = "align-items: center;";
+      divChild.innerHTML = html
+
+      // Ajouter le div au conteneur
+      summaryBox.appendChild(divChild);
+      setSizeSelectHTMLAndChar(taille=pizzaSize,a='smallPizzasAvailableOnSite',b='largePizzasAvailableOnSite',c='normal_pizza_size_onsite',d='special_pizza_size_onsite');
+      setSizeSelectHTMLAndChar(taille=pizzaSize,a='smallPizzasAvailableOnDelivery',b='largePizzasAvailableOnDelivery',c='normal_pizza_size_to_deliver',d='pizza_half_size_to_deliver');
+      document.getElementById('hidden-textarea-from-order-on-site').value += html;
+      document.getElementById('hidden-textarea-from-order-on-site1').value += result; // nettoyé
+    }
+    catch (error) {
+        console.error('Erreur lors du calcul du prix total :', error);
+      }
+  }else{
+    const pizzaHalf1 = document.getElementById('edit_pizza_half1_onsite').value;
+    const pizzaHalf2 = document.getElementById('edit_pizza_half2_onsite').value;
+    const pizzaSize = document.getElementById('edit_special_pizza_size_onsite').value; 
+
+    // Récupérer les toppings sélectionnés (checkboxes ou inputs)
+    const parentToppings = document.getElementById('edit-select-toppings-for-special-pizza-on-site')
+
+    for (let i = 0; i < parentToppings.children.length; i++) {
+      if(document.getElementById(`edit_supplements_for_special_pizza${i}_from_order_on_site`)){
+        if(document.getElementById(`edit_supplements_for_special_pizza${i}_from_order_on_site`).checked){ // Assurez-vous que ce sont des checkboxes cochés
+          pizzaExtraToppings.push(document.getElementById(`edit_supplements_for_special_pizza${i}_from_order_on_site`).value);
+        }
+      }
+    }
+
+    if(['','Nom'].includes(pizzaHalf1) || ['','Nom'].includes(pizzaHalf2) || ['','Taille'].includes(pizzaSize)){
+      document.getElementById(errorid).innerText = "Données invalides ou insuffisantes";
+      return
+    }
+
+    try {
+      // Attendre la résolution des promesses
+      const pizzaPrice = await getPizzaPrize(pizzaSize);
+      const toppingPrices = await getToppingPrices(pizzaExtraToppings);
+
+      const total_Price = pizzaPrice + toppingPrices;
+
+      const html = `
+          <input type="text" class='col-md-2 mx-1' id="name" value="${pizzaHalf1 + ' - ' + pizzaHalf2}" disabled>
+          <input type="text" class='col-md-2 mx-1' id="size" value="${pizzaSize}" disabled>
+          <input type="text" class='col-md-2 mx-1' id="extratoppings" value="${pizzaExtraToppings.join(', ')}" disabled>
+          <input type="text" class='col-md-2 mx-1' id="price" value="${total_Price}" disabled>
+          <button class="btn col-md-4 btn-danger" style="width: 20%; margin: 8px" onclick="deleteItemFromInvoice(taille='${pizzaSize}',event, '${summary_box}')" type="button">
+              Supprimer
+          </button>
+      `;
+
+      let html_reg = html;
+      let regex = /<button[\s\S]*?>[\s\S]*?<\/button>/g;
+
+      let result = html_reg.replace(regex, "///");
+
+      // Construire le contenu HTML avec interpolation
+      document.getElementById(errorid).innerText = "";
+      divChild.style = "align-items: center;";
+      divChild.innerHTML = html
+
+      // Ajouter le div au conteneur
+      summaryBox.appendChild(divChild);
+      setSizeSelectHTMLAndChar(taille=pizzaSize,a='edit-SmallPizzasAvailableOnSite',b='edit-LargePizzasAvailableOnSite',c='edit_normal_pizza_size_onsite',d='edit_special_pizza_size_onsite');
+      document.getElementById('edit-hidden-textarea-from-order-on-site').value += html;
+      document.getElementById('edit-hidden-textarea-from-order-on-site1').value += result; // nettoyé
+    }
+    catch (error) {
+        console.error('Erreur lors du calcul du prix total :', error);
+      }
+  }
+}
+
+function setSizeSelect(html,param1,param2){
+  document.getElementById(param1).innerHTML = `<option selected>Taille</option>`;
+  document.getElementById(param1).innerHTML += html;
+  document.getElementById(param2).innerHTML = `<option selected>Taille</option>`;
+  document.getElementById(param2).innerHTML += html;
+}
+
+function deleteItemFromInvoice(taille, event, summary_box){
+
+  const element = event.target.parentElement; // element à supprimer
+  const summaryBox = document.getElementById(summary_box);
+  //summaryBox.removeChild(element); // supprime element
+  element.remove()
+  let html_reg = summaryBox.innerHTML
+                                    .replace(/<h6>Détails<\/h6>/g, "")
+                                    .replace(/<div style="align-items: center;">/g, "")
+                                    .replace(/<\/div>/g, "")
+                                    .replace(/<button[\s\S]*?>[\s\S]*?<\/button>/g, "///");
+  let SmallAvailable;
+  let LargeAvailable;
+  let large_size_html; 
+  let small_size_html; 
+  let html; 
+
+
+  if(summary_box==='summary-box-from-order-on-site'){
+    
+    document.getElementById('hidden-textarea-from-order-on-site').value = html_reg;
+    document.getElementById('hidden-textarea-from-order-on-site1').value = html_reg;
+    SmallAvailable = parseInt(document.getElementById('smallPizzasAvailableOnSite').value, 10);
+    LargeAvailable = parseInt(document.getElementById('largePizzasAvailableOnSite').value, 10);
+
+    if(taille==='Petite'){
+      document.getElementById('smallPizzasAvailableOnSite').value = SmallAvailable + 1;
+      document.getElementById('smallPizzasAvailableOnDelivery').value = SmallAvailable + 1;
+      small_size_html = (SmallAvailable+1<=0) ? `<option disabled>Petite</option>`:`<option value="Petite">Petite</option>`;
+      large_size_html = (LargeAvailable<=0) ? `<option disabled>Grande</option>`:`<option value="Grande">Grande</option>`;
+      
+    }else{
+      document.getElementById('largePizzasAvailableOnSite').value = LargeAvailable + 1;
+      document.getElementById('largePizzasAvailableOnDelivery').value = LargeAvailable + 1;
+      large_size_html = (LargeAvailable+1<=0) ? `<option disabled>Grande</option>`:`<option value="Grande">Grande</option>`;
+      small_size_html = (SmallAvailable<=0) ? `<option disabled>Petite</option>`:`<option value="Petite">Petite</option>`;
+    }
+
+    html = [small_size_html,large_size_html].join('');
+
+    document.getElementById('normal_pizza_size_onsite').innerHTML = `<option selected>Taille</option>`;
+    document.getElementById('normal_pizza_size_onsite').innerHTML +=html ;
+    document.getElementById('special_pizza_size_onsite').innerHTML = `<option selected>Taille</option>`;
+    document.getElementById('special_pizza_size_onsite').innerHTML +=html ;
+    document.getElementById('normal_pizza_size_to_deliver').innerHTML = `<option selected>Taille</option>`;
+    document.getElementById('normal_pizza_size_to_deliver').innerHTML +=html ;
+    document.getElementById('pizza_half_size_to_deliver').innerHTML = `<option selected>Taille</option>`;
+    document.getElementById('pizza_half_size_to_deliver').innerHTML +=html ;
+  }else{
+
+    if(summary_box==='summary-box-from-order-on-delivery'){
+
+      document.getElementById('hidden-textarea-from-order-on-delivery1').value = html_reg;
+      document.getElementById('hidden-textarea-from-order-on-delivery').value = html_reg;
+      SmallAvailable = parseInt(document.getElementById('smallPizzasAvailableOnDelivery').value, 10);
+      LargeAvailable = parseInt(document.getElementById('largePizzasAvailableOnDelivery').value, 10);
+
+      if(taille==='Petite'){
+        console.log('une pizza de taille petite a été supprimée')
+        document.getElementById('smallPizzasAvailableOnDelivery').value = SmallAvailable + 1;
+        document.getElementById('smallPizzasAvailableOnSite').value = SmallAvailable + 1;
+        small_size_html = (SmallAvailable+1<=0) ? `<option disabled>Petite</option>`:`<option value="Petite">Petite</option>`;
+        large_size_html = (LargeAvailable<=0) ? `<option disabled>Grande</option>`:`<option value="Grande">Grande</option>`;
+      }else{
+        console.log('une pizza de taille grande a été supprimée')
+        document.getElementById('largePizzasAvailableOnDelivery').value = LargeAvailable + 1;
+        document.getElementById('largePizzasAvailableOnSite').value = LargeAvailable + 1;
+        small_size_html = (SmallAvailable<=0) ? `<option disabled>Petite</option>`:`<option value="Petite">Petite</option>`;
+        large_size_html = (LargeAvailable+1<=0) ? `<option disabled>Grande</option>`:`<option value="Grande">Grande</option>`;
+      }
+      
+      html = [small_size_html,large_size_html].join('');
+
+      document.getElementById('normal_pizza_size_onsite').innerHTML = `<option selected>Taille</option>`;
+      document.getElementById('normal_pizza_size_onsite').innerHTML +=html ;
+      document.getElementById('special_pizza_size_onsite').innerHTML = `<option selected>Taille</option>`;
+      document.getElementById('special_pizza_size_onsite').innerHTML +=html ;
+      document.getElementById('normal_pizza_size_to_deliver').innerHTML = `<option selected>Taille</option>`;
+      document.getElementById('normal_pizza_size_to_deliver').innerHTML +=html ;
+      document.getElementById('pizza_half_size_to_deliver').innerHTML = `<option selected>Taille</option>`;
+      document.getElementById('pizza_half_size_to_deliver').innerHTML +=html ;
+    }else{
+      if(summary_box==='edit-summary-box-from-order-on-delivery'){
+
+        document.getElementById('edit-hidden-textarea-from-order-on-delivery1').value = html_reg;
+        document.getElementById('edit-hidden-textarea-from-order-on-delivery').value = html_reg;
+        SmallAvailable = parseInt(document.getElementById('edit-SmallPizzasAvailableOnDelivery').value, 10);
+        LargeAvailable = parseInt(document.getElementById('edit-LargePizzasAvailableOnDelivery').value, 10);
+        console.log('SmallAvailable: ',SmallAvailable)
+        console.log('LargeAvailable: ',LargeAvailable)
+        if(taille==='Petite'){
+          document.getElementById('edit-SmallPizzasAvailableOnDelivery').value = SmallAvailable + 1;
+        }else{
+          document.getElementById('edit-LargePizzasAvailableOnDelivery').value = LargeAvailable + 1;
+        }
+        small_size_html = (SmallAvailable+1<=0) ? `<option disabled>Petite</option>`:`<option value="Petite">Petite</option>`;
+        large_size_html = (LargeAvailable+1<=0) ? `<option disabled>Grande</option>`:`<option value="Grande">Grande</option>`;
+
+        html = [small_size_html,large_size_html].join('');
+
+        document.getElementById('editNormalPizzaSizeToDeliver').innerHTML = `<option selected>Taille</option>`;
+        document.getElementById('editNormalPizzaSizeToDeliver').innerHTML += html; 
+        document.getElementById('edit_pizza_half_size_to_deliver').innerHTML = `<option selected>Taille</option>`;
+        document.getElementById('edit_pizza_half_size_to_deliver').innerHTML += html; 
+      }else{
+
+        document.getElementById('edit-hidden-textarea-from-order-on-site1').value = html_reg;
+        document.getElementById('edit-hidden-textarea-from-order-on-site').value = html_reg;
+        SmallAvailable = parseInt(document.getElementById('edit-SmallPizzasAvailableOnSite').value, 10);
+        LargeAvailable = parseInt(document.getElementById('edit-LargePizzasAvailableOnSite').value, 10);
+        if(taille==='Petite'){
+          document.getElementById('edit-SmallPizzasAvailableOnSite').value = SmallAvailable + 1;
+          small_size_html = (SmallAvailable+1<=0) ? `<option disabled>Petite</option>`:`<option value="Petite">Petite</option>`;
+          large_size_html = (LargeAvailable<=0) ? `<option disabled>Grande</option>`:`<option value="Grande">Grande</option>`;
+        }else{
+          document.getElementById('edit-LargePizzasAvailableOnSite').value = LargeAvailable + 1;
+          small_size_html = (SmallAvailable<=0) ? `<option disabled>Petite</option>`:`<option value="Petite">Petite</option>`;
+          large_size_html = (LargeAvailable+1<=0) ? `<option disabled>Grande</option>`:`<option value="Grande">Grande</option>`;
+        }
+
+        html = [small_size_html,large_size_html].join('');
+        document.getElementById('edit_normal_pizza_size_onsite').innerHTML = `<option selected>Taille</option>`;
+        document.getElementById('edit_normal_pizza_size_onsite').innerHTML += html; 
+        document.getElementById('edit_special_pizza_size_onsite').innerHTML = `<option selected>Taille</option>`;
+        document.getElementById('edit_special_pizza_size_onsite').innerHTML += html; 
+
+      }
+    }
+  }
+  };
+
+function deleteOrMoveToPending(num_order, order){
+
+  var isAdmin = "{{user.is_admin}}";
+  const html = document.getElementById(`orderline${num_order}`);
+  if(isAdmin === "True"){
+    console.log("Vous êtes admin !!!");
+  }else{
+    let tableRow = document.createElement('tr');
+    for(let i=0; i<html.children.length; i++){
+      console.log("element html.children[i]: ", html.children[i]);
+      tableRow.appendChild(html.children[i])
+    }
+    let numTaskPending = document.getElementById('body-pending-order').children.length;
+    document.getElementById('body-pending-order').appendChild(tableRow)
+    document.getElementById(`orderline${num_order}`).remove();
+    numTaskPending += 1;
+    document.getElementById('number_pending').innerText = numTaskPending;
+
+  }
+}
+
+function editOrder(grande,petite,status,orderLine, order_id_, client_id, deliver_id, on_site){
+  
+  const order_id__ = parseInt(order_id_, 10);
+  var isAdmin = "{{user.is_admin}}";
+
+  fetch("{% static 'izouapp/data.json' %}")
+  .then(response => {
+  if (!response.ok) {
+      throw new Error('Erreur lors du chargement du fichier JSON');
+  }
+  return response.json(); // Convertit en objet JavaScript
+  })
+  .then(data => {
+  orderToHTML = data.orderToHtml;
+  let order_dict;
+  for(const order of orderToHTML){
+    if(order.order_id===order_id__){
+      order_dict = order;
+      break;
+    }
+  }
+
+  if(on_site==='False'){ // si la commande n'est pas sur place
+    const editModal = document.getElementById('editOrderDeliveryModal');
+    const modal = new bootstrap.Modal(editModal);
+    if(isAdmin === "True"){
+      document.getElementById("editFinalBtnName1").value = 'Confirmer'
+    }else{
+      document.getElementById("editFinalBtnName1").value = 'Envoyer'
+    }
+    document.getElementById('order-on-delivery-id').value = client_id;
+    document.getElementById('client-on-delivery-id').value = order_id__;
+    document.getElementById('delivererman').value = deliver_id;
+    document.getElementById('edit_client_name').value = order_dict.client_infos.name;
+    document.getElementById('edit_client_number').value = order_dict.client_infos.number;
+    document.getElementById('edit_client_adress').value = order_dict.client_infos.deliveryAdress;
+    if(order_dict.paymentMode==="izoua"){
+      document.getElementById('edit_payment_method_from_order_to_deliver').innerHTML = `<option>Mode de paiement</option>
+                  <option selected value="izoua">Chez Izoua</option>
+                  <option value="delivered_man">Chez le livreur</option>`;
+    }else{
+    document.getElementById('edit_payment_method_from_order_to_deliver').innerHTML = `<option>Mode de paiement</option>
+                  <option value="izoua">Chez Izoua</option>
+                  <option selected value="delivered_man">Chez le livreur</option>`;
+    }
+
+    document.getElementById('edit_price_delivery').value = order_dict.client_infos.delivPrice;
+
+    for(const deliv_name of data.deliveryPersons){
+      if(deliv_name===order_dict.client_infos.deliveryMan){
+      document.getElementById('editDeliveryMan').innerHTML += `<option selected value="${deliv_name}">${deliv_name}</option>`;
+
+      }else{
+        document.getElementById('editDeliveryMan').innerHTML += `<option value="${deliv_name}">${deliv_name}</option>`;
+            }
+    }
+    document.getElementById('edit_delivery_time').value = order_dict.client_infos.deliveryHour;
+
+    const html = order_dict.orderHTML;
+
+    let html_reg = html;
+    let regex = /<button[\s\S]*?>[\s\S]*?<\/button>/g;
+
+    let result = html_reg.replace(regex, "///");
+
+    document.getElementById('edit-summary-box-from-order-on-delivery').innerHTML += html;
+    document.getElementById('edit-hidden-textarea-from-order-on-delivery').innerHTML = html;
+    document.getElementById('edit-hidden-textarea-from-order-on-delivery1').innerHTML = result; // nettoyé
+
+    document.getElementById("edit-SmallPizzasSoldOnDelivery").value = parseInt(petite,10); // initialise la valeur de ces champs au nombre des pizzas vendues par tailles dans cette commande  
+    document.getElementById("edit-LargePizzasSoldOnDelivery").value = parseInt(grande,10); // initialise la valeur de ces champs au nombre des pizzas vendues par tailles dans cette commande
+
+    const selectElement = document.getElementById('editOrderDelivStatus');
+
+    selectElement.innerHTML = (status==='delivered')?`<option selected value="delivered">Livrée</option>
+    <option value="canceled">Annulée</option>`:`<option value="delivered">Livrée</option>
+    <option selected value="canceled">Annulée</option>`;
+
+    selectElement.addEventListener('change', (event) => { // fonction qui va s'executer à chaque fois que je change la valeur Livrée/Annulée
+      // Récupérer la valeur sélectionnée
+      const selectedValue = event.target.value;
+
+      if(selectedValue==='delivered'){
+        const thisOrderSoldSmall = document.getElementById("edit-SmallPizzasSoldOnDelivery").value; // nombre de pizzas petites vendues dans cette commande
+        const thisOrderSoldLarge = document.getElementById("edit-LargePizzasSoldOnDelivery").value; // nombre de pizzas grandes vendues dans cette commande
+        const smallAvailable = parseInt(document.getElementById('edit-SmallPizzasAvailableOnDelivery').value, 10); // nombre de petites pizzas disponibles 
+        const largeAvailable = parseInt(document.getElementById('edit-LargePizzasAvailableOnDelivery').value, 10); // nombre de grandes pizzas disponibles
+        document.getElementById('edit-SmallPizzasAvailableOnDelivery').value = smallAvailable - parseInt(thisOrderSoldSmall,10);
+        document.getElementById('edit-LargePizzasAvailableOnDelivery').value = largeAvailable - parseInt(thisOrderSoldLarge,10);
+      }else{
+        const thisOrderSoldSmall = document.getElementById("edit-SmallPizzasSoldOnDelivery").value;
+        const thisOrderSoldLarge = document.getElementById("edit-LargePizzasSoldOnDelivery").value;
+        const smallAvailable = parseInt(document.getElementById('edit-SmallPizzasAvailableOnDelivery').value, 10); 
+        const largeAvailable = parseInt(document.getElementById('edit-LargePizzasAvailableOnDelivery').value, 10);
+
+        document.getElementById('edit-SmallPizzasAvailableOnDelivery').value = smallAvailable + parseInt(thisOrderSoldSmall,10);
+        document.getElementById('edit-LargePizzasAvailableOnDelivery').value = largeAvailable + parseInt(thisOrderSoldLarge,10);
+      }
+  });
+    
+    insertSoldSizePizzaInForm('edit-on-delivery')
+    modal.show();
+  }else{ // si la commande est sur place
+    const editModal = document.getElementById('editOrderOnSiteModal');
+    const modal = new bootstrap.Modal(editModal);
+
+    if(isAdmin === "True"){
+      document.getElementById("editFinalBtnName2").value = 'Confirmer'
+    }else{
+      document.getElementById("editFinalBtnName2").value = 'Envoyer'
+    }
+
+    document.getElementById('order-on-site-id').value = order_id__;
+    document.getElementById('client-on-site-id').value = client_id;
+    document.getElementById('editclient_name_on_site').value = order_dict.client_infos.name;
+
+    const html = order_dict.orderHTML;
+
+    let html_reg = html;
+    let regex = /<button[\s\S]*?>[\s\S]*?<\/button>/g;
+
+    let result = html_reg.replace(regex, "///");
+
+    
+    document.getElementById('edit-hidden-textarea-from-order-on-site1').innerHTML = result; // nettoyé
+    document.getElementById('edit-hidden-textarea-from-order-on-site').innerHTML = html;
+    document.getElementById('edit-summary-box-from-order-on-site').innerHTML += html;
+
+    document.getElementById("edit-SmallPizzasSoldOnSite").value = parseInt(petite,10); // initialise la valeur de ces champs au nombre des pizzas vendues par tailles dans cette commande  
+    document.getElementById("edit-LargePizzasSoldOnSite").value = parseInt(grande,10); // initialise la valeur de ces champs au nombre des pizzas vendues par tailles dans cette commande
+    
+    insertSoldSizePizzaInForm('edit-on-site')
+    modal.show();
+  }
+  }).catch(error => {
+    console.log('Erreur lors du chargement des données', error);
+              }
+    )
+}
+
+function setEditFormEmpty(form){
+  if(form=='on-site'){
+    document.getElementById('edit-hidden-textarea-from-order-on-site1').innerHTML = ''; // nettoyé
+    document.getElementById('edit-hidden-textarea-from-order-on-site').innerHTML = '';
+    document.getElementById('edit-summary-box-from-order-on-site').innerHTML = '';
+  }else{
+    document.getElementById('edit-hidden-textarea-from-order-on-delivery1').innerHTML = ''; // nettoyé
+    document.getElementById('edit-hidden-textarea-from-order-on-delivery').innerHTML = '';
+    document.getElementById('edit-summary-box-from-order-on-delivery').innerHTML = '';
+  }
+}
+
+function deletePendingEdit(row,order){
+  document.getElementById(row).remove(); // supprime le tag html representant la commande à enlever des modifications en attente
+  fetch("{% static 'izouapp/data.json' %}")
+  .then(response => {
+    if (!response.ok) {
+        throw new Error('Erreur lors du chargement du fichier JSON');
+    }
+    return response.json(); // Convertit en objet JavaScript
+    })
+  .then(data => {
+    console.log(data.pending_to_edit.order);
+    //delete data.pending_to_edit.order;
+  })
+  .catch(error => {
+    console.log('Erreur lors du chargement des données', error);
+                }
+      )
+  const url = `{% url 'home' %}`;
+  window.location.href = url; // redirige vers la vue home
+}
+
+function insertSoldSizePizzaInForm(type_form){ // fonction qui insert les données de l'inventaire en temps réel
+  fetch("{% static 'izouapp/data.json' %}")
+  .then(response => {
+  if (!response.ok) {
+      throw new Error('Erreur lors du chargement du fichier JSON');
+  }
+  return response.json(); // Convertit en objet JavaScript
+  })
+  .then(data => {
+    if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
+      if(Object.keys(data).length === 0){
+          console.log('le dictionnaire data est vide');
+      }else{
+    const LargeAvailable = data.inventory[1].pizzas_count;
+    const SmallAvailable = data.inventory[0].pizzas_count;
+    
+    if(type_form==='new-order'){
+      // le formulaire d'ajout de commandes à livrer
+    document.getElementById("smallPizzasAvailableOnDelivery").value = SmallAvailable;
+    document.getElementById("largePizzasAvailableOnDelivery").value = LargeAvailable;
+    
+    // le formulaire d'ajout de commandes sur place
+    document.getElementById("smallPizzasAvailableOnSite").value = SmallAvailable;
+    document.getElementById("largePizzasAvailableOnSite").value = LargeAvailable;
+    }
+    else{
+      if(type_form==='edit-on-site'){
+        document.getElementById("edit-SmallPizzasAvailableOnSite").value = SmallAvailable;
+        document.getElementById("edit-LargePizzasAvailableOnSite").value = LargeAvailable;
+      }else{
+        document.getElementById("edit-SmallPizzasAvailableOnDelivery").value = SmallAvailable;
+        document.getElementById("edit-LargePizzasAvailableOnDelivery").value = LargeAvailable;
+      }
+    }
+      }}
+    
+}).catch(error => {
+  console.log('Erreur lors du chargement des données', error);
+            }
+  )}
+  
+function setSizeSelectHTMLAndChar(taille,a,b,c,d){ // cette fonction lorsqu'elle est executée, active ou désactive le checkbox des tailles Petite/Grande selon l'inventaire disponible
+  const smallAvailable = parseInt(document.getElementById(a).value, 10); // smallAvailable represente au moment où cette fonction est executée le nombre de pizzas petites disponibles
+  const largeAvailable = parseInt(document.getElementById(b).value, 10); // largeAvailable represente au moment où cette fonction est executée le nombre de pizzas grandes disponibles
+  let small_size_html;
+  let large_size_html;
+
+  if(taille==='Petite'){
+    if(smallAvailable-1>=0){ // si le sold actuel de petites pizzas est positif
+    document.getElementById(a).value = smallAvailable-1;
+    small_size_html = (smallAvailable-1<=0) ? `<option disabled>Petite</option>`:`<option value="Petite">Petite</option>`;
+    large_size_html = (largeAvailable<=0) ? `<option disabled>Grande</option>`:`<option value="Grande">Grande</option>`;
+  }}else{
+    if(largeAvailable-1>=0){ // si le sold actuel de grandes pizzas est positif
+      document.getElementById(b).value = largeAvailable-1;
+      small_size_html = (smallAvailable<=0) ? `<option disabled>Petite</option>`:`<option value="Petite">Petite</option>`;
+      large_size_html = (largeAvailable-1<=0) ? `<option disabled>Grande</option>`:`<option value="Grande">Grande</option>`;
+    }
+  }
+        
+  const html = [small_size_html,large_size_html].join('');
+  setSizeSelect(html,c,d)
+}
+
+
+</script>
+
+</body>
+</html>
