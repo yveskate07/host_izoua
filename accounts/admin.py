@@ -21,7 +21,9 @@ class Manager_or_AdminAdmin(admin.ModelAdmin):
     list_display = ('username','email', 'is_admin', 'is_superuser',)
 
     def save_model(self, request, obj, form, change):
+        
         # Vérifiez si le mot de passe est déjà hashé
-        if not is_password_usable(obj.password):  # Si le mot de passe n'est pas utilisable (non hashé)
+        if not obj.password.startswith('pbkdf2_sha256$'):  # Si le mot de passe utilisable (non hashé)
             obj.set_password(obj.password)
+        
         super().save_model(request, obj, form, change)

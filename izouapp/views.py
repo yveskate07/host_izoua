@@ -16,6 +16,8 @@ from openpyxl.utils import get_column_letter
 from django.http import HttpResponse
 import os
 import locale
+from django.db.models import Sum
+from django.db.models import Sum, F, Q
 
 locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
 
@@ -436,19 +438,17 @@ def fetching_datas(request, filter_, date_to_print):
             content = json.load(file)
             html_list_order = []
             for data in fetched_datas_orders: # pour chaque commande de ce jour
-                print('data: ', data)
                 client = Client.objects.filter(id_client=data.client.id_client).first() # le client auquel cette commande est associée
                 if not data.edit_requested: # si la commande n'est pas en cours de modification
                     if client: # si le client existe
-                        print('le cient existe: ', client)
                         fetched_datas_clients.append(client) # liste des clients ayant commandé ce jour
                         pizza_names = ", ".join([" - ".join([pizza.moitie_1, pizza.moitie_2]) if pizza.status == 'Spéciale' else pizza.name for pizza in data.pizzas.all()])
                         #pizza_price = sum([pizza.price for pizza in data.pizzas.all()])
-                        order = {'a': data.order_id,'b': client.__str__(), 'c': pizza_names, 'd': data.status, 'e': data.total_price,
+                        order = {'a': data.order_id,'b': client.name, 'c': pizza_names, 'd': data.status, 'e': data.total_price,
                                  'f': data.create_at,
                                  'g': data.deliveryPerson if data.surplace == False else 'Commandé sur place',
                                  'h': data.surplace, 'i':data.client.id_client, 'j':data.deliveryPerson.id_deliveryman  if data.surplace == False else None,
-                                 'k':sum([1 for i in data.pizzas.all() if i.size=='Petite']), 'l':sum([1 for i in data.pizzas.all() if i.size=='Grande'])} # dictionnaire des commandes
+                                 'k':sum([1 for i in data.pizzas.all() if i.size=='Petite']), 'l':sum([1 for i in data.pizzas.all() if i.size=='Grande']),'m':client.adress, 'n':client.phone_number} # dictionnaire des commandes
 
                     else: # si le client n'existe pas
                         print("le client n'existe pas")
@@ -526,6 +526,24 @@ def fetching_datas(request, filter_, date_to_print):
         context['inventories'] = list_inventory
     else:
         context['inventories'] = []
+        
+    delivery_men = DeliveryPerson.objects.all()
+    context['delivery_men_infos'] = []
+    
+    if delivery_men:
+        for deliMan in delivery_men:
+            orders_ = orders.objects.filter(
+                        deliveryPerson_id=deliMan.id_deliveryman,
+                        create_at=request.session['date_selected']
+                    )
+            total_pizzas = sum([order.pizza_and_extratopping_price for order in orders_])
+            total_delivery = orders_.aggregate(
+            total_delivery=Sum('deliveryPrice', filter=Q(deliveryPrice__isnull=False))
+        )['total_delivery'] or 0
+            print('total_delivery: ', total_delivery)
+            
+            delivDict = {'name':deliMan.name, 'TotalPizzasSold':total_pizzas, 'TotalDeliv':total_delivery, 'Percent':0.2*total_delivery}
+            context['delivery_men_infos'].append(delivDict)
 
     preselected_datetime = datetime.strptime(
         f"{request.session.get('date_selected')} {time_now}", "%Y-%m-%d %H:%M:%S").isoformat()
@@ -668,10 +686,11 @@ def datas_to_json(request): # à revoir au cas où les requetes renvoient des ta
         content['inventory'] = inventory_
         content['deliveryPersons'] = deliveryPersons_
 
-        for dict_ in content['pending_to_edit']:
-            order = orders.objects.filter(order_id=dict_['order_id'])
-            if not order[0].edit_requested:
-                content['pending_to_edit'].remove(dict_)
+        if 'pending_to_edit' in content.keys():
+            for dict_ in content['pending_to_edit']:
+                order = orders.objects.filter(order_id=dict_['order_id'])
+                if not order[0].edit_requested:
+                    content['pending_to_edit'].remove(dict_)
 
         #content.get('ordersToChart', None)
         if not 'ordersToChart' in content.keys():

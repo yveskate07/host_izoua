@@ -740,6 +740,11 @@
           <i class="bi bi-hourglass-split"></i><span>En attente</span><span style="color: blue; margin-left: 5px;" id="number_pending"></span>
         </a>
       </li>
+      <li>
+        <a href="#infos">
+          <i class="bi bi-truck"></i> <span>Infos livreur</span>
+        </a>
+      </li>
       <li id="admin_url">
         <a href="{% url 'to_admin' %}">
           <i class="bi bi-gear-wide-connected"></i>
@@ -907,7 +912,11 @@
                 <tr class="align-middle" id="orderline{{forloop.counter}}">
                   <td id="order-id{{forloop.counter}}" hidden>{{order.a}}</td>
                   <td class="text-center">#{{ forloop.counter }}</td>
+                  {% if order.m and order.n %}
+                  <td class="text-center">{{ order.b }}<br>{{ order.m }}<br>{{ order.n }}</td>
+                  {% else %}
                   <td class="text-center">{{ order.b }}</td>
+                  {% endif %}
                   <td class="text-center">{{ order.c }}</td>
                   <td class="text-center">
                     {% if order.d == 'delivered' %}
@@ -1034,6 +1043,37 @@
             </table>
             
         </div>
+        
+        
+        <!-- Détails Livreurs -->
+         <h4 class="text-center" style="margin-top: 25px;" id="infos">Infos livreurs</h4>
+         <div class="container" style="display: flex; flex-direction: row; gap: 10px;">
+          <div class="card" id="deliverMan-infos" style="width: 18rem;">
+            {% if delivery_men_infos %}
+            {% for deliver in delivery_men_infos %}
+            <div class="card-header">
+              {{deliver.name}}
+            </div>
+            
+            
+            <ul class="list-group list-group-flush">
+              <li class="list-group-item">Total pizza vendu: {{deliver.TotalPizzasSold}} FCFA</li>
+              <li class="list-group-item">Total livraison: {{deliver.TotalDeliv}} FCFA</li>
+              <li class="list-group-item">Pourcentage (20%): {{deliver.Percent}} FCFA</li>
+            </ul>
+            {% endfor %}
+            {% else %}
+            <h2>Aucun livreur enregistré</h2>
+            {% endif %}
+          </div>
+
+          
+
+
+
+         </div>
+       
+          
         
       </div>
       
