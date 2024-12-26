@@ -196,7 +196,7 @@ class orders(models.Model):
 
 
     def description(self):
-        return f'Base de données contenant les informations des commandes livrées ou annulées'
+        return f'Base de données contenant les informations des commandes livrées ou annulées. \nedit requested: indique si une modification pour cette commande a été demandée, pour refuser cette modification, decocher cette case.'
 
     description.short_description = "Description: "
 

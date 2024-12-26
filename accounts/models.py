@@ -45,7 +45,7 @@ class Manager_or_Admin(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = ["email",]
 
     def description(self):
-        return f'Base de données des utilisateurs.\n\nis_active: designe si cet utilisateur fais partie oui ou non de IzouaPizza. ;\n\nis_admin: Accorde ou pas certains privileges à cet utilisateur ;\n\nis_superuser: cet utilisateur à tous les droits.'
+        return f'Base de données des utilisateurs.\n\nis_active: designe si cet utilisateur fais partie oui ou non de IzouaPizza. ;\n\nis_admin: Accorde ou pas certains privileges à cet utilisateur, dans ce cas-ci, definir un utilisateur comme admin lui permettra simplement de modifier une commande. ;\n\nis_superuser: cet utilisateur à tous les droits.'
 
     description.short_description = "Description: "
 
