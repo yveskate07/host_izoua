@@ -74,7 +74,7 @@ class ordersAdmin(admin.ModelAdmin):
     get_pizza_id.short_description = 'Pizzas'
     get_extratoppings.short_description = 'Suppléments'
 
-@admin.register(Client)
+"""@admin.register(Client)
 class ClientAdmin(admin.ModelAdmin):
     fields = ('name',
               'phone_number',
@@ -86,9 +86,9 @@ class ClientAdmin(admin.ModelAdmin):
         'name',
         'phone_number',
         'adress',
-    )
+    )"""
 
-@admin.register(Pizza)
+#@admin.register(Pizza)
 class PizzaAdmin(admin.ModelAdmin):
     readonly_fields = ('description',)
     list_display = (

@@ -112,7 +112,8 @@ def split_html_and_get_pizzas(html, pizzas_count_sold, firstOrderStatus, finalOr
                     status='Spéciale',
                     name='Pizza Spéciale',
                     size=pizza_dict['size'])
-                pizza.extratoppings.add(*extratoppings)
+                if len(extratoppings)>0:
+                    pizza.extratoppings.add(*extratoppings)
                 pizza_liste.append(pizza)
             else:
                 if len(pizza_dict['extratoppings']) > 0:
@@ -181,11 +182,17 @@ def edit_order_directly(request,client_to_edit,order_to_edit,id_deliveryman,deli
     client = Client.objects.filter(id_client=client_to_edit)
     order = orders.objects.filter(order_id=order_to_edit)
 
-    obj_first = order.first()
+    if order.first():
+        obj_first = order.first()
+    else:
+        return HttpResponse("Cette commande n'existe pas ou a été supprimée.")
 
     initial_status = obj_first.status
 
-    current_inventory = DailyInventory.objects.filter(date=get_date(request))
+    if len(DailyInventory.objects.filter(date=get_date(request))):
+        current_inventory = DailyInventory.objects.filter(date=get_date(request))
+    else:
+        return HttpResponse("L'inventaire pour le jour choisi n'existe pas ou a été supprimé.")
 
     user = request.user
 
@@ -196,13 +203,19 @@ def edit_order_directly(request,client_to_edit,order_to_edit,id_deliveryman,deli
 
         if order_type == 'to-deliver':
 
-            if DeliveryPerson.objects.filter(id_deliveryman=id_deliveryman).first() != DeliveryPerson.objects.filter(
-                    name=deliveryman_name).first():  # si l'id du livreur et le nom du livreur livreur ne correspondent pas#
+            if DeliveryPerson.objects.filter(id_deliveryman=id_deliveryman).first() and DeliveryPerson.objects.filter(
+                    name=deliveryman_name).first():
 
-                deliv_man = DeliveryPerson.objects.filter(name=deliveryman_name).first()
+                if DeliveryPerson.objects.filter(id_deliveryman=id_deliveryman).first() != DeliveryPerson.objects.filter(
+                        name=deliveryman_name).first():  # si l'id du livreur et le nom du livreur livreur ne correspondent pas#
+
+                    deliv_man = DeliveryPerson.objects.filter(name=deliveryman_name).first()
+
+                else:
+                    deliv_man = DeliveryPerson.objects.filter(id_deliveryman=id_deliveryman).first()
 
             else:
-                deliv_man = DeliveryPerson.objects.filter(id_deliveryman=id_deliveryman).first()
+                return HttpResponse('Un des livreurs a été supprimé de la base de données.')
 
             client.update(name=client_name, phone_number=client_number, adress=client_adress)
 
@@ -261,13 +274,20 @@ def edit_order(request): # modifie simplement le dictionnaire data.json et la cl
             pizzas_count_av = {'Petite': int(request.POST.get('edit-SmallPizzasAvailableOnDelivery')), # les pizzas encore disponibles
                                'Grande': int(request.POST.get('edit-LargePizzasAvailableOnDelivery'))} # les pizzas encore disponibles
 
-            if DeliveryPerson.objects.filter(id_deliveryman=id_deliveryman).first() != DeliveryPerson.objects.filter(
-                    name=deliveryman_name).first():  # si l'id du livreur et le nom du livreur livreur ne correspondent pas#
+            if DeliveryPerson.objects.filter(id_deliveryman=id_deliveryman).first() and DeliveryPerson.objects.filter(
+                    name=deliveryman_name).first():
 
-                deliv_man = DeliveryPerson.objects.filter(name=deliveryman_name).first()
+                if DeliveryPerson.objects.filter(
+                        id_deliveryman=id_deliveryman).first() != DeliveryPerson.objects.filter(
+                        name=deliveryman_name).first():  # si l'id du livreur et le nom du livreur livreur ne correspondent pas#
+
+                    deliv_man = DeliveryPerson.objects.filter(name=deliveryman_name).first()
+
+                else:
+                    deliv_man = DeliveryPerson.objects.filter(id_deliveryman=id_deliveryman).first()
 
             else:
-                deliv_man = DeliveryPerson.objects.filter(id_deliveryman=id_deliveryman).first()
+                return HttpResponse('Un des livreurs a été supprimé de la base de données.')
 
             payment_method_from_order_to_deliver = request.POST.get('payment_method_from_order_to_deliver')
             price_delivery = int(request.POST.get('price_delivery'))
@@ -288,11 +308,17 @@ def edit_order(request): # modifie simplement le dictionnaire data.json et la cl
         client = Client.objects.filter(id_client=client_to_edit)
         order = orders.objects.filter(order_id=order_to_edit)
 
-        obj_first = order.first()
+        if order.first():
+            obj_first = order.first()
+        else:
+            return HttpResponse("Cette commande n'existe pas ou a été supprimée.")
 
         initial_status = obj_first.status
 
-        current_inventory = DailyInventory.objects.filter(date=get_date(request))
+        if len(DailyInventory.objects.filter(date=get_date(request))):
+            current_inventory = DailyInventory.objects.filter(date=get_date(request))
+        else:
+            return HttpResponse("L'inventaire pour le jour choisi n'existe pas ou a été supprimé.")
 
         user = request.user
 
@@ -415,7 +441,7 @@ def fetching_datas(request, filter_, date_to_print):
     elif isinstance(filter_, str): # dans le cas où le filtre est un objet de type str: all ou canceled ou delivered
         context['preselected_filter'] = {'all':'Tout', 'canceled':'Annulés','delivered':'Livrés'}.get(filter_) # retourne le contenu html du filtre selectionné
 
-        if filter_ in ['canceled','delivered']:
+        if filter_ in ['canceled','delivered','on-site']:
             fetched_datas_orders = orders.objects.filter(create_at=date.fromisoformat(request.session['date_selected']),
                                                          status=filter_)
 
@@ -451,7 +477,6 @@ def fetching_datas(request, filter_, date_to_print):
                                  'k':sum([1 for i in data.pizzas.all() if i.size=='Petite']), 'l':sum([1 for i in data.pizzas.all() if i.size=='Grande']),'m':client.adress, 'n':client.phone_number} # dictionnaire des commandes
 
                     else: # si le client n'existe pas
-                        print("le client n'existe pas")
                         fetched_datas_clients.append(client)
                         pizza_names = ", ".join(
                             [" - ".join([pizza.moitie_1, pizza.moitie_2]) if pizza.status == 'Spéciale' else pizza.name
@@ -586,26 +611,31 @@ def add_order(request):
                     phone_number=infos_client['numero'],
                     adress=infos_client['adresse'])
 
+                try:
+                    deliv_price = int(infos_client['prix_livraison'])
+                except ValueError as e:
+                    return HttpResponse("Le prix de la livraison doit être un entier. Veuillez tout autre caractère qui n'est pas un nombre, y compris les espaces.")
+                else:
+                    order = orders.objects.create( # création d'une nouvelle commande
+                        deliveryHour = infos_client['heure_livraison'],
+                        deliveryAdress = infos_client['adresse'],
+                        payment_method = infos_client['methode_payement'],
+                        deliveryPerson = DeliveryPerson.objects.filter(name = infos_client['livreur'])[0],
+                        status='delivered',
+                        client = client,
+                        deliveryPrice = infos_client['prix_livraison'],
+                    )
 
-                order = orders.objects.create( # création d'une nouvelle commande
-                    deliveryHour = infos_client['heure_livraison'],
-                    deliveryAdress = infos_client['adresse'],
-                    payment_method = infos_client['methode_payement'],
-                    deliveryPerson = DeliveryPerson.objects.filter(name = infos_client['livreur'])[0],
-                    client = client,
-                    deliveryPrice = infos_client['prix_livraison'],
-                )
+                    order.pizzas.add(*tuple(pizzas)) # ajout des pizzas dans la commande
 
-                order.pizzas.add(*tuple(pizzas)) # ajout des pizzas dans la commande
+                    current_inventory.update(sold_small_pizzas_count=pizzas_count_sold['Petite'],
+                                             sold_large_pizzas_count=pizzas_count_sold['Grande']) # mise à jour de l'inventaire
 
-                current_inventory.update(sold_small_pizzas_count=pizzas_count_sold['Petite'],
-                                         sold_large_pizzas_count=pizzas_count_sold['Grande']) # mise à jour de l'inventaire
-
-                content['orderToHtml'].append({'order_id':order.order_id,'client_infos':{'name':infos_client['name'],'number':infos_client['numero'],
-                                              'deliveryAdress':infos_client['adresse'],'paymentMode':infos_client['methode_payement'],
-                                              'delivPrice':infos_client['prix_livraison'],'deliveryMan':infos_client['livreur'],
-                                              'deliveryHour':infos_client['heure_livraison']},
-                                              'orderHTML':html_list_order})
+                    content['orderToHtml'].append({'order_id':order.order_id,'client_infos':{'name':infos_client['name'],'number':infos_client['numero'],
+                                                  'deliveryAdress':infos_client['adresse'],'paymentMode':infos_client['methode_payement'],
+                                                  'delivPrice':infos_client['prix_livraison'],'deliveryMan':infos_client['livreur'],
+                                                  'deliveryHour':infos_client['heure_livraison']},
+                                                  'orderHTML':html_list_order})
 
             else: # si la commande est sur place
 
@@ -622,6 +652,7 @@ def add_order(request):
 
                 order = orders.objects.create(
                     surplace = True,
+                    status='on-site',
                     client=client,
                 )
 

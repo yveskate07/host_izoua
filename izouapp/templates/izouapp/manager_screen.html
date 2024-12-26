@@ -784,7 +784,7 @@
                 <form method="POST" style="display: flex; align-items: center;" action="{% url 'filter_order_by_date' %}">
                   {% csrf_token %}
 
-                  <!-- Search Bar -->
+                  <!-- Search Bar
                   <div class="col-md-3">
                       <input
                           type="text"
@@ -794,7 +794,7 @@
                           placeholder="Rechercher..."
                           aria-label="Search"
                         />
-                  </div>
+                  </div>-->
 
                   <!-- Date Picker -->
                   <div class="col-md-3 text-end" style='margin-left:9px;'>
@@ -880,6 +880,7 @@
                     <li><button class="dropdown-item" type="button" onclick="selectOption('Tout','all')">Tout</button></li>
                     <li><button class="dropdown-item" type="button" onclick="selectOption('Annulés','canceled')">Annulés</button></li>
                     <li><button class="dropdown-item" type="button" onclick="selectOption('Livrés','delivered')">Livrés</button></li>
+                    <li><button class="dropdown-item" type="button" onclick="selectOption('Sur place','on-site')">Livrés</button></li>
                   </ul>
                 </div>
                 <!-- Champ caché pour transmettre la valeur -->
@@ -1046,12 +1047,12 @@
         
         
         <!-- Détails Livreurs -->
-         <h4 class="text-center" style="margin-top: 25px;" id="infos">Infos livreurs</h4>
-         <div class="container" style="display: flex; flex-direction: row; gap: 10px;">
+         <h4 class="text-center mb-5" style="margin-top: 25px;" id="infos">Infos livreurs</h4>
+         <div class="container justify-content-center" style="display: flex; flex-direction: row; gap: 15px;">
            {% if delivery_men_infos %}
            {% for deliver in delivery_men_infos %}
           <div class="card" id="deliverMan-infos" style="width: 18rem;">
-            <div class="card-header">
+            <div class="card-header bg-secondary">
               {{deliver.name}}
             </div>
             
