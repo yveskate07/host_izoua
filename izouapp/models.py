@@ -176,6 +176,7 @@ class orders(models.Model):
         ('delivered','Livrée'),
         ('canceled', 'Annulée'),
         ('on-site', 'Sur place'),
+        ('pending','En attente'),
     ]
 
     PAYMENT_METHOD = [('izoua','Izoua'),('delivered_man','Livreur')]
@@ -187,7 +188,7 @@ class orders(models.Model):
     create_at = models.DateField(blank=False, null=False,default=django.utils.timezone.now)
     update_at = models.DateField(blank=True,default=django.utils.timezone.now)
     surplace = models.BooleanField(default=False)
-    status = models.CharField(max_length=50, choices=STATUS_CHOICES, null=False)
+    status = models.CharField(max_length=50, choices=STATUS_CHOICES, null=False, default='pending')
     edit_requested = models.BooleanField(default=False)
     deliveryPerson = models.ForeignKey(DeliveryPerson, on_delete=models.SET_NULL, null=True, blank=True) # champs à renseigner dans le cas d'une commande sur livraison
     pizzas = models.ManyToManyField(Pizza)

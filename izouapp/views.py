@@ -11,7 +11,6 @@ from .models import orders, Pizza, Client, DailyInventory, ExtraTopping, PizzaSi
 from datetime import timedelta, datetime, date
 from django.contrib.auth.decorators import login_required
 import openpyxl
-from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from django.http import HttpResponse
 import os
@@ -109,7 +108,7 @@ def split_html_and_get_pizzas(html, pizzas_count_sold, firstOrderStatus, finalOr
                     pizza_dict['price'] = int(input_tag.get("value"))
 
             if status == 'speciale':
-                extratoppings = (ExtraTopping.objects.filter(name=i)[0] for i in pizza_dict['extratoppings'])
+                extratoppings = tuple(ExtraTopping.objects.filter(name=i)[0] for i in pizza_dict['extratoppings'])
                 pizza = Pizza.objects.create(
                     moitie_1=pizza_dict['name'][0],
                     moitie_2=pizza_dict['name'][1],
@@ -190,7 +189,7 @@ def edit_order_directly(request,client_to_edit,order_to_edit,id_deliveryman,deli
     if order.first():
         obj_first = order.first()
     else:
-        return HttpResponse("Cette commande n'existe pas ou a été supprimée.")
+        return HttpResponse("Cette commande n'existe pas ou a été supprimée.", order.first())
 
     initial_status = obj_first.status
 
@@ -627,7 +626,6 @@ def add_order(request):
                         deliveryAdress = infos_client['adresse'],
                         payment_method = infos_client['methode_payement'],
                         deliveryPerson = DeliveryPerson.objects.filter(name = infos_client['livreur'])[0],
-                        status='delivered',
                         client = client,
                         deliveryPrice = infos_client['prix_livraison'],
                     )
@@ -660,6 +658,7 @@ def add_order(request):
                     surplace = True,
                     status='on-site',
                     client=client,
+                    payment_method='izoua',
                 )
 
                 order.pizzas.add(*tuple(pizzas))
@@ -769,16 +768,23 @@ def create_excel_with_data(file_name, data):
         # Construire le chemin absolu du fichier Excel dans MEDIA_ROOT
         file_path = os.path.join(settings.MEDIA_ROOT, file_name)
 
-        # Vérifier si le fichier Excel existe
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f"Le fichier '{file_name}' n'existe pas dans le répertoire media.")
-
-        # Charger le fichier Excel existant
-        workbook = openpyxl.load_workbook(file_path)
+        workbook = openpyxl.Workbook()
+        # Obtenir la feuille active par défaut
         sheet = workbook.active
 
-        # Insérer les données (à partir de la ligne 3)
-        start_row = 3
+        sheet.title = "Recapitulatif des commandes"
+
+        headers = [
+            "Date", "Sur place", "Adresse Livraison", "Heure livraison", "Livreur",
+            "Statut", "Clients", "Mode de paiement", "Infos Pizzas",
+            "Prix Livraison", "Prix Pizzas + Suppléments", "Total"
+        ]
+
+        for col_num, header in enumerate(headers, start=1):
+            sheet.cell(row=1, column=col_num, value=header)
+
+        # Insérer les données (à partir de la ligne 2)
+        start_row = 2
         for row_num, row_data in enumerate(data, start=start_row):
             for col_num, value in enumerate(row_data, start=1):
                 sheet.cell(row=row_num, column=col_num, value=value)

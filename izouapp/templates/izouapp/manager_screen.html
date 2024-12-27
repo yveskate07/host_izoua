@@ -390,6 +390,8 @@
                 <input type="hidden" name='order-type' value="to-deliver">
                 <input type="hidden" name='deliver-id' id="delivererman">
 
+                <input type="hidden" name='previous_status' id="previous_status">
+
                 <!-- le nombre de Grandes/Petites pizzas disponibles en stock-->
                 <input type="hidden" name='edit-SmallPizzasAvailableOnDelivery' id="edit-SmallPizzasAvailableOnDelivery">
                 <input type="hidden" name='edit-LargePizzasAvailableOnDelivery' id="edit-LargePizzasAvailableOnDelivery">
@@ -511,6 +513,7 @@
                 <select name="editOrderStatus" id="editOrderDelivStatus" class="form-select">
                   <option value="delivered">Livrée</option>
                   <option value="canceled">Annulée</option>
+                  <option value="canceled">En attente</option>
                 </select>
               </div>
 
@@ -923,9 +926,11 @@
                     {% if order.d == 'delivered' %}
                       <span class="badge bg-success">Livrée</span>
                     {% elif order.d == 'canceled' %}
-                      <span class="badge bg-danger">Annulé</span>
+                      <span class="badge bg-danger">Annulée</span>
+                    {% elif order.d == 'pending' %}
+                    <span class="badge bg-secondary">En attente</span>
                     {% else %}
-                    <span class="badge bg-secondary">Sur place</span>
+                    <span class="badge bg-warning">Sur place</span>
                     {% endif %}
                   </td>
                   <td class="text-center">{{ order.e }}</td>
@@ -1471,7 +1476,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('admin_url').setAttribute('hidden', true);
   }
 
-  const preselectedDatetime = "{{ preselected_datetime|escapejs }}";
+  const preselectedDatetime = "{{ preselected_datetime|escapejs }}"; //exampleModal editOrderDeliveryModal editOrderOnSiteModal exampleModalLong
 
   const formattedDate = preselectedDatetime
   ? new Date(preselectedDatetime).toISOString().split('T')[0]
@@ -1493,7 +1498,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  var modals = document.querySelectorAll('.modal');
 
+    // Parcourir chaque modal
+    modals.forEach(function(modal) {
+        // Ajouter un écouteur d'événements pour chaque modal
+        modal.addEventListener('hidden.bs.modal', function () {
+            // Recharger la page lorsque la modal se ferme
+            window.location.reload();
+        });
+    });
   setDatasInDom();
 });
 
@@ -2293,8 +2307,8 @@ function editOrder(grande,petite,status,orderLine, order_id_, client_id, deliver
     }else{
       document.getElementById("editFinalBtnName1").value = 'Envoyer'
     }
-    document.getElementById('order-on-delivery-id').value = client_id;
-    document.getElementById('client-on-delivery-id').value = order_id__;
+    document.getElementById('order-on-delivery-id').value = order_id__;
+    document.getElementById('client-on-delivery-id').value = client_id;
     document.getElementById('delivererman').value = deliver_id;
     document.getElementById('edit_client_name').value = order_dict.client_infos.name;
     document.getElementById('edit_client_number').value = order_dict.client_infos.number;
@@ -2341,18 +2355,33 @@ function editOrder(grande,petite,status,orderLine, order_id_, client_id, deliver
     <option value="canceled">Annulée</option>`:`<option value="delivered">Livrée</option>
     <option selected value="canceled">Annulée</option>`;
 
+    if(status==='delivered'){
+        selectElement.innerHTML = `<option selected value="delivered">Livrée</option><option value="canceled">Annulée</option><option value="pending">En attente</option>`
+        document.getElementById('previous_status').value = 'delivered'
+    }else if(status==='pending'){
+        selectElement.innerHTML = `<option value="delivered">Livrée</option><option value="canceled">Annulée</option><option selected value="pending">En attente</option>`
+        document.getElementById('previous_status').value = 'pending'
+    }else{
+        selectElement.innerHTML = `<option value="delivered">Livrée</option><option selected value="canceled">Annulée</option><option value="pending">En attente</option>`
+        document.getElementById('previous_status').value = 'canceled'
+    }
+
     selectElement.addEventListener('change', (event) => { // fonction qui va s'executer à chaque fois que je change la valeur Livrée/Annulée
       // Récupérer la valeur sélectionnée
       const selectedValue = event.target.value;
 
-      if(selectedValue==='delivered'){
+      if(['delivered','pending'].includes(selectedValue)){
+          if(document.getElementById('previous_status').value === 'canceled'){
         const thisOrderSoldSmall = document.getElementById("edit-SmallPizzasSoldOnDelivery").value; // nombre de pizzas petites vendues dans cette commande
         const thisOrderSoldLarge = document.getElementById("edit-LargePizzasSoldOnDelivery").value; // nombre de pizzas grandes vendues dans cette commande
         const smallAvailable = parseInt(document.getElementById('edit-SmallPizzasAvailableOnDelivery').value, 10); // nombre de petites pizzas disponibles
         const largeAvailable = parseInt(document.getElementById('edit-LargePizzasAvailableOnDelivery').value, 10); // nombre de grandes pizzas disponibles
         document.getElementById('edit-SmallPizzasAvailableOnDelivery').value = smallAvailable - parseInt(thisOrderSoldSmall,10);
         document.getElementById('edit-LargePizzasAvailableOnDelivery').value = largeAvailable - parseInt(thisOrderSoldLarge,10);
-      }else{
+        document.getElementById('previous_status').value = 'delivered'
+          }
+      }else if(selectedValue==='canceled'){
+          if(['delivered','pending'].includes(document.getElementById('previous_status').value)){
         const thisOrderSoldSmall = document.getElementById("edit-SmallPizzasSoldOnDelivery").value;
         const thisOrderSoldLarge = document.getElementById("edit-LargePizzasSoldOnDelivery").value;
         const smallAvailable = parseInt(document.getElementById('edit-SmallPizzasAvailableOnDelivery').value, 10);
@@ -2360,6 +2389,8 @@ function editOrder(grande,petite,status,orderLine, order_id_, client_id, deliver
 
         document.getElementById('edit-SmallPizzasAvailableOnDelivery').value = smallAvailable + parseInt(thisOrderSoldSmall,10);
         document.getElementById('edit-LargePizzasAvailableOnDelivery').value = largeAvailable + parseInt(thisOrderSoldLarge,10);
+        document.getElementById('previous_status').value = 'canceled'
+          }
       }
   });
 
