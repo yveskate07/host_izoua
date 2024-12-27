@@ -32,7 +32,7 @@ class MyUserManager(BaseUserManager):
 class Manager_or_Admin(AbstractBaseUser, PermissionsMixin):
 
     username = models.CharField(max_length=50,  blank=False, null=False, unique=True)
-    email = models.EmailField(unique=True, blank=False, null=False)
+    email = models.EmailField(unique=True, blank=True, null=True)
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)

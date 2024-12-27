@@ -127,7 +127,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
-STATICFILES_DIRS = [os.path.join(BASE_DIR, "izouapp/static"), os.path.join(BASE_DIR, "accounts/static"), os.path.join(BASE_DIR, 'izouaproject/static'), 'static']
+STATICFILES_DIRS = [os.path.join(BASE_DIR, "izouapp/static"), os.path.join(BASE_DIR, "accounts/static"), os.path.join(BASE_DIR, 'izouaproject/static'), os.path.join(BASE_DIR, 'static')]
 
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 

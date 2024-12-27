@@ -96,7 +96,7 @@
   #scrollToTopBtn:hover {
     background-color: #0056b3;
   }
-    
+
   .card {
   background-color: #f9f9f9;
   border: 1px solid #ddd;
@@ -138,7 +138,7 @@
               </div>
 
               <!-- order from delivery -->
-              
+
               <form id="addOrderDelivery" method="post" action="{% url 'add_order' %}">
                 {% csrf_token %}
                   <input type="hidden" name='addOrder' value="order_to_deliver">
@@ -354,7 +354,7 @@
                     <span style="color: red;" id="errorspan4"></span>
                   </div>
                 </div>
-                  
+
                 <hr class="my-4">
 
                 <div id="summary-box-from-order-on-site">
@@ -383,7 +383,7 @@
       <div class="container modal-body">
         <div class="container modal-body">
           <div class="wrapper container-md" id="editOrderOnDelivery">
-            <form method="post" action="{% url 'edit_order1' %}"> 
+            <form method="post" action="{% url 'edit_order1' %}">
               {% csrf_token %}
                 <input type="hidden" name='order-id' id="order-on-delivery-id">
                 <input type="hidden" name='client-id' id="client-on-delivery-id">
@@ -638,7 +638,7 @@
                 <span style="color: red;" id="editerrorspan4"></span>
               </div>
             </div>
-                
+
             <hr class="my-4">
 
             <div id="edit-summary-box-from-order-on-site">
@@ -703,7 +703,7 @@
 
   <!-- Sidebar -->
 <nav id="sidebar" class="sidebar">
-    
+
     <ul>
       <li style="margin-bottom: 25px; font-size: 27px;"  id="toggleSidebar">
         <a href="#">
@@ -761,12 +761,12 @@
         </span>
         </a>
       </li>
-      
+
     </ul>
 </nav>
 
   <!-- Content -->
-  
+
   <div class="content">
     <div class="flex-grow-1" id="main-content">
       <div class="container mt-4">
@@ -816,9 +816,9 @@
             </div>
           </div>
       </div>
-        
+
     </div>
-      
+
         <!-- Top Bar -->
         <div class="d-flex justify-content-between align-items-center p-3" id="command-box">
             <i class="fas fa-bars"></i>
@@ -829,7 +829,7 @@
             <button type="button" class="btn btn-primary" id="add-new-order-btn" data-bs-toggle="modal" data-bs-target="#exampleModal">Ajouter une commande</button>
           </div>
         </div>
-  
+
         <!-- Stats Section -->
         <div class="row mb-4 px-3 justify-content-center">
           <div class="col-md-3">
@@ -861,7 +861,7 @@
             </div>
           </div>
         </div>
-  
+
         <!-- Table Section -->
         <div class="card p-3 mx-3">
           <div class="d-flex justify-content-between align-items-center mb-3">
@@ -989,7 +989,7 @@
                 <!-- Add more rows -->
               </tbody>
             </table>
-            
+
         </div>
         <!-- Analyse -->
         <div class="justify-content-between justify-content-md-end align-items-center mb-3 d-flex flex-column">
@@ -1042,10 +1042,10 @@
                 <!-- Add more rows -->
               </tbody>
             </table>
-            
+
         </div>
-        
-        
+
+
         <!-- Détails Livreurs -->
          <h4 class="text-center mb-5" style="margin-top: 25px;" id="infos">Infos livreurs</h4>
          <div class="container justify-content-center" style="display: flex; flex-direction: row; gap: 15px;">
@@ -1055,8 +1055,8 @@
             <div class="card-header bg-secondary">
               {{deliver.name}}
             </div>
-            
-            
+
+
             <ul class="list-group list-group-flush">
               <li class="list-group-item">Total pizza vendu: {{deliver.TotalPizzasSold}} FCFA</li>
               <li class="list-group-item">Total livraison: {{deliver.TotalDeliv}} FCFA</li>
@@ -1068,20 +1068,20 @@
             <h2>Aucun livreur enregistré</h2>
           {% endif %}
 
-          
+
 
 
 
          </div>
-       
-          
-        
+
+
+
       </div>
-      
+
   </div>
-  
+
 <!----------------------------------------------------------------------------- modal for edit order normal on deliver --------------------------------------------------------------------------->
-  
+
 
     <!-- Add Inventory Modal -->
 <div class="modal fade" id="addInventoryModal" tabindex="-1" data-bs-backdrop="static" aria-labelledby="addInventoryModalLabel" aria-hidden="true">
@@ -1202,7 +1202,7 @@ function setDatasInDom(){  // **************** fonction pour recuperer les Pizza
           if(Object.keys(pendingEdits).length !== 0){
             for(const row of pendingEdits){
 
-              const tR = document.createElement('tr'); 
+              const tR = document.createElement('tr');
               tR.id = row.idRow;
               tR.classList.add('"text-center"', 'align-middle');
               tR.innerHTML = row.trFirst;
@@ -1300,7 +1300,7 @@ function setDatasInDom(){  // **************** fonction pour recuperer les Pizza
           const elements33 = document.getElementById('edit-select-toppings-for-normal-pizza-on-site');
 
           const elements4 = document.getElementById('select-toppings-for-special-pizza-on-site');
-          const elements44 = document.getElementById('edit-select-toppings-for-special-pizza-on-site');          
+          const elements44 = document.getElementById('edit-select-toppings-for-special-pizza-on-site');
 
           if (extraToppings.length > 0) {
               const html1 = extraToppings.map((topping, index) => `
@@ -1364,7 +1364,7 @@ function setDatasInDom(){  // **************** fonction pour recuperer les Pizza
               </li>
               `).join('');
 
-              
+
 
               elements1.innerHTML = html1;
               elements11.innerHTML = html11;
@@ -1374,7 +1374,7 @@ function setDatasInDom(){  // **************** fonction pour recuperer les Pizza
               elements33.innerHTML = html33;
               elements4.innerHTML = html4;
               elements44.innerHTML = html44;
-              
+
             } else {
                 const htmlempty = `
                   <li>
@@ -1395,8 +1395,8 @@ function setDatasInDom(){  // **************** fonction pour recuperer les Pizza
             }
             const elements =  document.getElementsByClassName('select-size');
             const small_size_html = InVentory[0].pizzas_count > 0 ? `<option value="${InVentory[0].name}">${InVentory[0].name}</option>`: `<option disabled>${InVentory[0].name}</option>`;
-            const large_size_html = InVentory[1].pizzas_count > 0 ? `<option value="${InVentory[1].name}">${InVentory[1].name}</option>`: `<option disabled>${InVentory[1].name}</option>`; 
-            
+            const large_size_html = InVentory[1].pizzas_count > 0 ? `<option value="${InVentory[1].name}">${InVentory[1].name}</option>`: `<option disabled>${InVentory[1].name}</option>`;
+
             const html = [small_size_html,large_size_html].join('');
 
             for (let i = 0; i < elements.length; i++) {
@@ -1454,7 +1454,7 @@ function transformerDate(dateStr) {
 function reformaterDate(dateStr) {
   // Diviser la chaîne en parties
   const [annee, mois, jour] = dateStr.split("-");
-  
+
   // Réorganiser au format souhaité
   return `${jour}-${mois}-${annee}`;
 }
@@ -1493,7 +1493,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  
+
   setDatasInDom();
 });
 
@@ -1562,7 +1562,7 @@ async function getPizzaPrize(size){ // fonction pour obtenir le prix etant donn�
     throw error; // Relance l'erreur pour le gestionnaire d'appel
   }
 }
-      
+
 async function getToppingPrices(toppings) { // fonction pour obtenir le prix etant donné le nom d'un ou plusieurs supplements
   try {
     const response = await fetch("{% static 'izouapp/data.json' %}");
@@ -1596,11 +1596,11 @@ async function AddNormalPizzaToDeliverToInvoice(idBtn,errorid,summary_box) { // 
   const divChild = document.createElement('div');
   divChild.classList.add('row');
   divChild.classList.add('my-1');
-  
+
   divChild.style = "align-items: center;";
 
   if(idBtn==='btn-add-normal-deliver'){ // si la pizza ajoutée l'est à partir d'un formulaire de nouvelle commande
-    
+
     const pizzaName = document.getElementById('pizza_name_to_deliver').value;
     const pizzaSize = document.getElementById('normal_pizza_size_to_deliver').value;
     const parentToppings = document.getElementById('select-toppings-for-normal-pizza-to-deliver');
@@ -1623,11 +1623,11 @@ async function AddNormalPizzaToDeliverToInvoice(idBtn,errorid,summary_box) { // 
       // Attendre la résolution des promesses
       const pizzaPrice = await getPizzaPrize(pizzaSize);
       const toppingPrices = await getToppingPrices(pizzaExtraToppings);
-  
+
       const total_Price = pizzaPrice + toppingPrices;
-  
+
       const summaryBox = document.getElementById(summary_box);
-  
+
       const html = `
           <input type="text" class='col-md-2 mx-1' id="name" value="${pizzaName}" disabled>
           <input type="text" class='col-md-2 mx-1' id="size" value="${pizzaSize}" disabled>
@@ -1637,16 +1637,16 @@ async function AddNormalPizzaToDeliverToInvoice(idBtn,errorid,summary_box) { // 
               Supprimer
           </button>
       `;
-  
+
       let html_reg = html;
       let regex = /<button[\s\S]*?>[\s\S]*?<\/button>/g;
-  
+
       let result = html_reg.replace(regex, "///");
-  
+
       // Construire le contenu HTML avec interpolation
       document.getElementById("errorspan1").innerText = ""
       divChild.innerHTML = html;
-      
+
       // Ajouter le div au conteneur
       summaryBox.appendChild(divChild);
       setSizeSelectHTMLAndChar(taille=pizzaSize,a='smallPizzasAvailableOnSite',b='largePizzasAvailableOnSite',c='normal_pizza_size_onsite',d='special_pizza_size_onsite');
@@ -1657,7 +1657,7 @@ async function AddNormalPizzaToDeliverToInvoice(idBtn,errorid,summary_box) { // 
     catch (error) {
       console.error('Erreur lors du calcul du prix total :', error);
     }
-  }else{ // si la pizza ajoutée l'est à partir d'un formulaire d'édition de commande 
+  }else{ // si la pizza ajoutée l'est à partir d'un formulaire d'édition de commande
     const pizzaName = document.getElementById('editPizzaNameToDeliver').value;
     const pizzaSize = document.getElementById('editNormalPizzaSizeToDeliver').value;
     const parentToppings = document.getElementById('edit-select-toppings-for-normal-pizza-to-deliver');
@@ -1680,9 +1680,9 @@ async function AddNormalPizzaToDeliverToInvoice(idBtn,errorid,summary_box) { // 
       // Attendre la résolution des promesses
       const pizzaPrice = await getPizzaPrize(pizzaSize);
       const toppingPrices = await getToppingPrices(pizzaExtraToppings);
-  
+
       const total_Price = pizzaPrice + toppingPrices;
-  
+
       const html = `
           <input type="text" class='col-md-2 mx-1' id="name" value="${pizzaName}" disabled>
           <input type="text" class='col-md-2 mx-1' id="size" value="${pizzaSize}" disabled>
@@ -1692,16 +1692,16 @@ async function AddNormalPizzaToDeliverToInvoice(idBtn,errorid,summary_box) { // 
               Supprimer
           </button>
       `;
-  
+
       let html_reg = html;
       let regex = /<button[\s\S]*?>[\s\S]*?<\/button>/g;
-  
+
       let result = html_reg.replace(regex, "///");
-  
+
       // Construire le contenu HTML avec interpolation
       document.getElementById("errorspan1").innerText = ""
       divChild.innerHTML = html;
-      
+
       // Ajouter le div au conteneur
       summaryBox.appendChild(divChild);
       setSizeSelectHTMLAndChar(taille=pizzaSize,a='edit-SmallPizzasAvailableOnDelivery',b='edit-LargePizzasAvailableOnDelivery',c='editNormalPizzaSizeToDeliver',d='edit_pizza_half_size_to_deliver');
@@ -1716,7 +1716,7 @@ async function AddNormalPizzaToDeliverToInvoice(idBtn,errorid,summary_box) { // 
 
 async function AddSpecialPizzaToDeliverToInvoice(idBtn,errorid,summary_box) { // **************** fonction pour ajouter les Pizzas Speciales à la facture
   const pizzaExtraToppings = [];
-  
+
   const divChild = document.createElement('div');
 
   const summaryBox = document.getElementById(summary_box);
@@ -1732,7 +1732,7 @@ async function AddSpecialPizzaToDeliverToInvoice(idBtn,errorid,summary_box) { //
     const pizzaSize = document.getElementById('pizza_half_size_to_deliver').value;
 
     // Récupérer les toppings sélectionnés (checkboxes ou inputs)
-    
+
 
     const parentToppings = document.getElementById('select-toppings-for-special-pizza-to-deliver');
 
@@ -1791,7 +1791,7 @@ async function AddSpecialPizzaToDeliverToInvoice(idBtn,errorid,summary_box) { //
     const pizzaSize = document.getElementById('edit_pizza_half_size_to_deliver').value;
 
     // Récupérer les toppings sélectionnés (checkboxes ou inputs)
-  
+
 
     const parentToppings = document.getElementById('edit-select-toppings-for-special-pizza-to-deliver');
 
@@ -1861,7 +1861,7 @@ async function AddNormalPizzaOnSiteToInvoice(idBtn,errorid,summary_box) { // ***
     const pizzaName = document.getElementById('pizza_name_onsite').value;
     const pizzaSize = document.getElementById('normal_pizza_size_onsite').value;
 
-    
+
     // Récupérer les toppings sélectionnés (checkboxes ou inputs)
 
     const parentToppings = document.getElementById('select-toppings-for-normal-pizza-on-site');
@@ -1883,9 +1883,9 @@ async function AddNormalPizzaOnSiteToInvoice(idBtn,errorid,summary_box) { // ***
       // Attendre la résolution des promesses
       const pizzaPrice = await getPizzaPrize(pizzaSize);
       const toppingPrices = await getToppingPrices(pizzaExtraToppings);
-  
+
       const total_Price = pizzaPrice + toppingPrices;
-  
+
       const html = `
           <input type="text" class='col-md-2 mx-1' id="name" value="${pizzaName}" disabled>
           <input type="text" class='col-md-2 mx-1' id="size" value="${pizzaSize}" disabled>
@@ -1895,16 +1895,16 @@ async function AddNormalPizzaOnSiteToInvoice(idBtn,errorid,summary_box) { // ***
               Supprimer
           </button>
       `;
-  
+
       let html_reg = html;
       let regex = /<button[\s\S]*?>[\s\S]*?<\/button>/g;
-  
+
       let result = html_reg.replace(regex, "///");
-  
+
       // Construire le contenu HTML avec interpolation
       document.getElementById(errorid).innerText = "";
       divChild.innerHTML = html;
-      
+
       // Ajouter le div au conteneur
       summaryBox.appendChild(divChild);
       setSizeSelectHTMLAndChar(taille=pizzaSize,a='smallPizzasAvailableOnSite',b='largePizzasAvailableOnSite',c='normal_pizza_size_onsite',d='special_pizza_size_onsite');
@@ -1919,7 +1919,7 @@ async function AddNormalPizzaOnSiteToInvoice(idBtn,errorid,summary_box) { // ***
     //
     const pizzaName = document.getElementById('edit_pizza_name_onsite').value;
     const pizzaSize = document.getElementById('edit_normal_pizza_size_onsite').value;
-    
+
     // Récupérer les toppings sélectionnés (checkboxes ou inputs)
 
     const parentToppings = document.getElementById('edit-select-toppings-for-normal-pizza-on-site');
@@ -1941,9 +1941,9 @@ async function AddNormalPizzaOnSiteToInvoice(idBtn,errorid,summary_box) { // ***
       // Attendre la résolution des promesses
       const pizzaPrice = await getPizzaPrize(pizzaSize);
       const toppingPrices = await getToppingPrices(pizzaExtraToppings);
-  
+
       const total_Price = pizzaPrice + toppingPrices;
-  
+
       const html = `
           <input type="text" class='col-md-2 mx-1' id="name" value="${pizzaName}" disabled>
           <input type="text" class='col-md-2 mx-1' id="size" value="${pizzaSize}" disabled>
@@ -1953,16 +1953,16 @@ async function AddNormalPizzaOnSiteToInvoice(idBtn,errorid,summary_box) { // ***
               Supprimer
           </button>
       `;
-  
+
       let html_reg = html;
       let regex = /<button[\s\S]*?>[\s\S]*?<\/button>/g;
-  
+
       let result = html_reg.replace(regex, "///");
-  
+
       // Construire le contenu HTML avec interpolation
       document.getElementById(errorid).innerText = "";
       divChild.innerHTML = html;
-      
+
       // Ajouter le div au conteneur
       summaryBox.appendChild(divChild);
       setSizeSelectHTMLAndChar(taille=pizzaSize,a='edit-SmallPizzasAvailableOnSite',b='edit-LargePizzasAvailableOnSite',c='edit_normal_pizza_size_onsite',d='edit_special_pizza_size_onsite');
@@ -1977,7 +1977,7 @@ async function AddNormalPizzaOnSiteToInvoice(idBtn,errorid,summary_box) { // ***
 async function AddSpecialPizzaOnSiteToInvoice(idBtn,errorid,summary_box) { // **************** fonction pour ajouter les Pizzas Speciales à la facture
 
   const pizzaExtraToppings = [];
-  
+
   // Créer l'élément div
   const summaryBox = document.getElementById(summary_box);
   const divChild = document.createElement('div');
@@ -1989,7 +1989,7 @@ async function AddSpecialPizzaOnSiteToInvoice(idBtn,errorid,summary_box) { // **
 
     const pizzaHalf1 = document.getElementById('pizza_half1_onsite').value;
     const pizzaHalf2 = document.getElementById('pizza_half2_onsite').value;
-    const pizzaSize = document.getElementById('special_pizza_size_onsite').value; 
+    const pizzaSize = document.getElementById('special_pizza_size_onsite').value;
 
     // Récupérer les toppings sélectionnés (checkboxes ou inputs)
     const parentToppings = document.getElementById('select-toppings-for-special-pizza-on-site')
@@ -2047,7 +2047,7 @@ async function AddSpecialPizzaOnSiteToInvoice(idBtn,errorid,summary_box) { // **
   }else{
     const pizzaHalf1 = document.getElementById('edit_pizza_half1_onsite').value;
     const pizzaHalf2 = document.getElementById('edit_pizza_half2_onsite').value;
-    const pizzaSize = document.getElementById('edit_special_pizza_size_onsite').value; 
+    const pizzaSize = document.getElementById('edit_special_pizza_size_onsite').value;
 
     // Récupérer les toppings sélectionnés (checkboxes ou inputs)
     const parentToppings = document.getElementById('edit-select-toppings-for-special-pizza-on-site')
@@ -2124,13 +2124,13 @@ function deleteItemFromInvoice(taille, event, summary_box){
                                     .replace(/<button[\s\S]*?>[\s\S]*?<\/button>/g, "///");
   let SmallAvailable;
   let LargeAvailable;
-  let large_size_html; 
-  let small_size_html; 
-  let html; 
+  let large_size_html;
+  let small_size_html;
+  let html;
 
 
   if(summary_box==='summary-box-from-order-on-site'){
-    
+
     document.getElementById('hidden-textarea-from-order-on-site').value = html_reg;
     document.getElementById('hidden-textarea-from-order-on-site1').value = html_reg;
     SmallAvailable = parseInt(document.getElementById('smallPizzasAvailableOnSite').value, 10);
@@ -2141,7 +2141,7 @@ function deleteItemFromInvoice(taille, event, summary_box){
       document.getElementById('smallPizzasAvailableOnDelivery').value = SmallAvailable + 1;
       small_size_html = (SmallAvailable+1<=0) ? `<option disabled>Petite</option>`:`<option value="Petite">Petite</option>`;
       large_size_html = (LargeAvailable<=0) ? `<option disabled>Grande</option>`:`<option value="Grande">Grande</option>`;
-      
+
     }else{
       document.getElementById('largePizzasAvailableOnSite').value = LargeAvailable + 1;
       document.getElementById('largePizzasAvailableOnDelivery').value = LargeAvailable + 1;
@@ -2181,7 +2181,7 @@ function deleteItemFromInvoice(taille, event, summary_box){
         small_size_html = (SmallAvailable<=0) ? `<option disabled>Petite</option>`:`<option value="Petite">Petite</option>`;
         large_size_html = (LargeAvailable+1<=0) ? `<option disabled>Grande</option>`:`<option value="Grande">Grande</option>`;
       }
-      
+
       html = [small_size_html,large_size_html].join('');
 
       document.getElementById('normal_pizza_size_onsite').innerHTML = `<option selected>Taille</option>`;
@@ -2212,9 +2212,9 @@ function deleteItemFromInvoice(taille, event, summary_box){
         html = [small_size_html,large_size_html].join('');
 
         document.getElementById('editNormalPizzaSizeToDeliver').innerHTML = `<option selected>Taille</option>`;
-        document.getElementById('editNormalPizzaSizeToDeliver').innerHTML += html; 
+        document.getElementById('editNormalPizzaSizeToDeliver').innerHTML += html;
         document.getElementById('edit_pizza_half_size_to_deliver').innerHTML = `<option selected>Taille</option>`;
-        document.getElementById('edit_pizza_half_size_to_deliver').innerHTML += html; 
+        document.getElementById('edit_pizza_half_size_to_deliver').innerHTML += html;
       }else{
 
         document.getElementById('edit-hidden-textarea-from-order-on-site1').value = html_reg;
@@ -2233,9 +2233,9 @@ function deleteItemFromInvoice(taille, event, summary_box){
 
         html = [small_size_html,large_size_html].join('');
         document.getElementById('edit_normal_pizza_size_onsite').innerHTML = `<option selected>Taille</option>`;
-        document.getElementById('edit_normal_pizza_size_onsite').innerHTML += html; 
+        document.getElementById('edit_normal_pizza_size_onsite').innerHTML += html;
         document.getElementById('edit_special_pizza_size_onsite').innerHTML = `<option selected>Taille</option>`;
-        document.getElementById('edit_special_pizza_size_onsite').innerHTML += html; 
+        document.getElementById('edit_special_pizza_size_onsite').innerHTML += html;
 
       }
     }
@@ -2264,7 +2264,7 @@ function deleteOrMoveToPending(num_order, order){
 }
 
 function editOrder(grande,petite,status,orderLine, order_id_, client_id, deliver_id, on_site){
-  
+
   const order_id__ = parseInt(order_id_, 10);
   var isAdmin = "{{user.is_admin}}";
 
@@ -2332,7 +2332,7 @@ function editOrder(grande,petite,status,orderLine, order_id_, client_id, deliver
     document.getElementById('edit-hidden-textarea-from-order-on-delivery').innerHTML = html;
     document.getElementById('edit-hidden-textarea-from-order-on-delivery1').innerHTML = result; // nettoyé
 
-    document.getElementById("edit-SmallPizzasSoldOnDelivery").value = parseInt(petite,10); // initialise la valeur de ces champs au nombre des pizzas vendues par tailles dans cette commande  
+    document.getElementById("edit-SmallPizzasSoldOnDelivery").value = parseInt(petite,10); // initialise la valeur de ces champs au nombre des pizzas vendues par tailles dans cette commande
     document.getElementById("edit-LargePizzasSoldOnDelivery").value = parseInt(grande,10); // initialise la valeur de ces champs au nombre des pizzas vendues par tailles dans cette commande
 
     const selectElement = document.getElementById('editOrderDelivStatus');
@@ -2348,21 +2348,21 @@ function editOrder(grande,petite,status,orderLine, order_id_, client_id, deliver
       if(selectedValue==='delivered'){
         const thisOrderSoldSmall = document.getElementById("edit-SmallPizzasSoldOnDelivery").value; // nombre de pizzas petites vendues dans cette commande
         const thisOrderSoldLarge = document.getElementById("edit-LargePizzasSoldOnDelivery").value; // nombre de pizzas grandes vendues dans cette commande
-        const smallAvailable = parseInt(document.getElementById('edit-SmallPizzasAvailableOnDelivery').value, 10); // nombre de petites pizzas disponibles 
+        const smallAvailable = parseInt(document.getElementById('edit-SmallPizzasAvailableOnDelivery').value, 10); // nombre de petites pizzas disponibles
         const largeAvailable = parseInt(document.getElementById('edit-LargePizzasAvailableOnDelivery').value, 10); // nombre de grandes pizzas disponibles
         document.getElementById('edit-SmallPizzasAvailableOnDelivery').value = smallAvailable - parseInt(thisOrderSoldSmall,10);
         document.getElementById('edit-LargePizzasAvailableOnDelivery').value = largeAvailable - parseInt(thisOrderSoldLarge,10);
       }else{
         const thisOrderSoldSmall = document.getElementById("edit-SmallPizzasSoldOnDelivery").value;
         const thisOrderSoldLarge = document.getElementById("edit-LargePizzasSoldOnDelivery").value;
-        const smallAvailable = parseInt(document.getElementById('edit-SmallPizzasAvailableOnDelivery').value, 10); 
+        const smallAvailable = parseInt(document.getElementById('edit-SmallPizzasAvailableOnDelivery').value, 10);
         const largeAvailable = parseInt(document.getElementById('edit-LargePizzasAvailableOnDelivery').value, 10);
 
         document.getElementById('edit-SmallPizzasAvailableOnDelivery').value = smallAvailable + parseInt(thisOrderSoldSmall,10);
         document.getElementById('edit-LargePizzasAvailableOnDelivery').value = largeAvailable + parseInt(thisOrderSoldLarge,10);
       }
   });
-    
+
     insertSoldSizePizzaInForm('edit-on-delivery')
     modal.show();
   }else{ // si la commande est sur place
@@ -2386,14 +2386,14 @@ function editOrder(grande,petite,status,orderLine, order_id_, client_id, deliver
 
     let result = html_reg.replace(regex, "///");
 
-    
+
     document.getElementById('edit-hidden-textarea-from-order-on-site1').innerHTML = result; // nettoyé
     document.getElementById('edit-hidden-textarea-from-order-on-site').innerHTML = html;
     document.getElementById('edit-summary-box-from-order-on-site').innerHTML += html;
 
-    document.getElementById("edit-SmallPizzasSoldOnSite").value = parseInt(petite,10); // initialise la valeur de ces champs au nombre des pizzas vendues par tailles dans cette commande  
+    document.getElementById("edit-SmallPizzasSoldOnSite").value = parseInt(petite,10); // initialise la valeur de ces champs au nombre des pizzas vendues par tailles dans cette commande
     document.getElementById("edit-LargePizzasSoldOnSite").value = parseInt(grande,10); // initialise la valeur de ces champs au nombre des pizzas vendues par tailles dans cette commande
-    
+
     insertSoldSizePizzaInForm('edit-on-site')
     modal.show();
   }
@@ -2451,12 +2451,12 @@ function insertSoldSizePizzaInForm(type_form){ // fonction qui insert les donné
       }else{
     const LargeAvailable = data.inventory[1].pizzas_count;
     const SmallAvailable = data.inventory[0].pizzas_count;
-    
+
     if(type_form==='new-order'){
       // le formulaire d'ajout de commandes à livrer
     document.getElementById("smallPizzasAvailableOnDelivery").value = SmallAvailable;
     document.getElementById("largePizzasAvailableOnDelivery").value = LargeAvailable;
-    
+
     // le formulaire d'ajout de commandes sur place
     document.getElementById("smallPizzasAvailableOnSite").value = SmallAvailable;
     document.getElementById("largePizzasAvailableOnSite").value = LargeAvailable;
@@ -2471,12 +2471,12 @@ function insertSoldSizePizzaInForm(type_form){ // fonction qui insert les donné
       }
     }
       }}
-    
+
 }).catch(error => {
   console.log('Erreur lors du chargement des données', error);
             }
   )}
-  
+
 function setSizeSelectHTMLAndChar(taille,a,b,c,d){ // cette fonction lorsqu'elle est executée, active ou désactive le checkbox des tailles Petite/Grande selon l'inventaire disponible
   const smallAvailable = parseInt(document.getElementById(a).value, 10); // smallAvailable represente au moment où cette fonction est executée le nombre de pizzas petites disponibles
   const largeAvailable = parseInt(document.getElementById(b).value, 10); // largeAvailable represente au moment où cette fonction est executée le nombre de pizzas grandes disponibles
@@ -2495,7 +2495,7 @@ function setSizeSelectHTMLAndChar(taille,a,b,c,d){ // cette fonction lorsqu'elle
       large_size_html = (largeAvailable-1<=0) ? `<option disabled>Grande</option>`:`<option value="Grande">Grande</option>`;
     }
   }
-        
+
   const html = [small_size_html,large_size_html].join('');
   setSizeSelect(html,c,d)
 }

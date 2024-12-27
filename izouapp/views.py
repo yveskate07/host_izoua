@@ -21,6 +21,10 @@ from django.db.models import Sum, F, Q
 
 locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
 
+script_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(script_dir)
+file_path = os.path.join(parent_dir, 'staticfiles', 'izouapp', 'data.json')
+
 
 # Create your views here.
 @login_required
@@ -153,7 +157,8 @@ def get_pizzas_names_from_html_input(html):
 def edit_order_if_granted(request):
     if request.method == 'POST':
         order_to_edit = int(request.POST.get('grantedEdit'))
-        with open('izouapp/static/izouapp/data.json', 'r') as file:
+
+        with open(file_path, 'r') as file:
             content = json.load(file)
             for dict_ in content['pending_to_edit']:
                 if dict_['order_id'] == order_to_edit:
@@ -374,7 +379,7 @@ def edit_order(request): # modifie simplement le dictionnaire data.json et la cl
                                    'Grande': int(request.POST.get(
                                        'edit-LargePizzasAvailableOnSite'))}
 
-            with open('izouapp/static/izouapp/data.json', 'r') as file:
+            with open(file_path, 'r') as file:
                 content = json.load(file)
                 len_row = len(content['pending_to_edit'])
                 content['pending_to_edit'].append({'order_id':order_to_edit,'idRow':f'pending-{len_row}','trFirst':f"""
@@ -404,7 +409,7 @@ def edit_order(request): # modifie simplement le dictionnaire data.json et la cl
                                                             pizzas_count_av # dict
                                                            ]}) # int
 
-            with open('izouapp/static/izouapp/data.json', 'w') as file:
+            with open(file_path, 'w') as file:
                 json.dump(content, file)
 
             order.update(edit_requested=True)
@@ -460,7 +465,7 @@ def fetching_datas(request, filter_, date_to_print):
             continue
 
     if fetched_datas_orders: # si la liste des commandes du jour choisi n'est pas vide
-        with open('izouapp/static/izouapp/data.json', 'r') as file:
+        with open(file_path, 'r') as file:
             content = json.load(file)
             html_list_order = []
             for data in fetched_datas_orders: # pour chaque commande de ce jour
@@ -523,7 +528,7 @@ def fetching_datas(request, filter_, date_to_print):
 
                 html_list_order = []
 
-            with open('izouapp/static/izouapp/data.json', 'w') as file:
+            with open(file_path, 'w') as file:
                 json.dump(content, file)
 
         for client in set(fetched_datas_clients):
@@ -551,22 +556,23 @@ def fetching_datas(request, filter_, date_to_print):
         context['inventories'] = list_inventory
     else:
         context['inventories'] = []
-        
+
     delivery_men = DeliveryPerson.objects.all()
     context['delivery_men_infos'] = []
-    
+
     if delivery_men:
         for deliMan in delivery_men:
             orders_ = orders.objects.filter(
                         deliveryPerson_id=deliMan.id_deliveryman,
-                        create_at=request.session['date_selected']
+                        create_at=request.session['date_selected'],
+                        status = 'delivered'
                     )
             total_pizzas = sum([order.pizza_and_extratopping_price for order in orders_])
             total_delivery = orders_.aggregate(
             total_delivery=Sum('deliveryPrice', filter=Q(deliveryPrice__isnull=False))
         )['total_delivery'] or 0
             print('total_delivery: ', total_delivery)
-            
+
             delivDict = {'name':deliMan.name, 'TotalPizzasSold':total_pizzas, 'TotalDeliv':total_delivery, 'Percent':0.2*total_delivery}
             context['delivery_men_infos'].append(delivDict)
 
@@ -584,7 +590,7 @@ def add_order(request):
 
     if request.method == 'POST':
 
-        with open('izouapp/static/izouapp/data.json', 'r') as file:
+        with open(file_path, 'r') as file:
             content = json.load(file)
 
             current_inventory = DailyInventory.objects.filter(date=get_date(request)) # inventaire de la date actuelle
@@ -662,7 +668,7 @@ def add_order(request):
 
                 content['orderToHtml'].append({'order_id':order.order_id,'client_infos':{'name':client.name},'orderHTML':html_list_order})
 
-        with open('izouapp/static/izouapp/data.json', 'w') as file:
+        with open(file_path, 'w') as file:
             json.dump(content, file)
 
     return redirect(reverse('home'))
@@ -705,7 +711,7 @@ def datas_to_json(request): # à revoir au cas où les requetes renvoient des ta
         inventory_ = [{'name': 'Petite', 'pizzas_count': 0, 'Price': 0},
                       {'name': 'Grande', 'pizzas_count': 0, 'Price': 0}]
 
-    with open('izouapp/static/izouapp/data.json', 'r') as file:
+    with open(file_path, 'r') as file:
         content = json.load(file)
 
     if pizza_==[] or len(inventory)==0 or len(prices)==0:
@@ -733,7 +739,8 @@ def datas_to_json(request): # à revoir au cas où les requetes renvoient des ta
         if not 'pending_to_edit' in content.keys():
             content['pending_to_edit'] = [] # une liste de dictionnaire
 
-    with open('izouapp/static/izouapp/data.json','w') as file:
+
+    with open(file_path,'w') as file:
         json.dump(content, file)
 
 def prepare_datas_to_export():
@@ -825,12 +832,12 @@ def get_datas_to_chart(request):
         datas['sold'] = list(reversed(sold))
         datas['unsold'] = list(reversed(unsold))
 
-        with open('izouapp/static/izouapp/data.json', 'r') as file:
+        with open(file_path, 'r') as file:
             content = json.load(file)
 
             content['ordersToChart'] = datas
 
-        with open('izouapp/static/izouapp/data.json', 'w') as file:
+        with open(file_path, 'w') as file:
             json.dump(content, file)
 
 
