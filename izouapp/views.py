@@ -847,8 +847,8 @@ def prepare_datas_to_export():
             methode_payment_order = 'Chez Izoua' if data.payment_method_order == 'izoua' else 'Chez le livreur'
             methode_payment_delivery = 'Chez Izoua' if data.payment_method_delivery == 'izoua' else 'Chez le livreur'
             data_row = [date_formatee_fr, surplace,
-                        data.deliveryAdress if data.surplace else 'Commandée sur place', time_formatee,
-                        data.deliveryPerson.name if data.surplace else 'Commandée sur place',
+                        data.deliveryAdress if data.deliveryAdress else 'Commandée sur place', time_formatee,
+                        data.deliveryPerson.name if data.deliveryPerson else 'Commandée sur place',
                         delivered, data.client.name, methode_payment_order if data.surplace else 'Chez Izoua', methode_payment_delivery if data.surplace else 'Chez Izoua', pizza_names,
                         data.deliveryPrice if data.surplace else 'Commandée sur place',
                         data.pizza_and_extratopping_price, data.total_price]
