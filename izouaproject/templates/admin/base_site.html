@@ -3,8 +3,10 @@
 {% load static %}
 
 {% block branding %}
-<img src="{% static 'izouaproject/images/pizza-with-chef-hat.png' %}" width="8%">
-<h1>Izoua Pizza</h1>
+<a href="{% url 'home' %}">
+    <img src="{% static 'izouaproject/images/pizza-with-chef-hat.png' %}" width="8%">
+    <h1>Izoua Pizza</h1>
+</a>
 {% endblock %}
 
 {% block extrastyle %}

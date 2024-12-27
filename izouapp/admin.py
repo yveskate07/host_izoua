@@ -32,7 +32,8 @@ class DeliveryPersonAdmin(admin.ModelAdmin):
 class ordersAdmin(admin.ModelAdmin):
     fields = ('deliveryHour',
               'deliveryAdress',
-              'payment_method',
+              'payment_method_order',
+              'payment_method_delivery',
               'create_at',
               'update_at',
               'surplace',
@@ -46,11 +47,11 @@ class ordersAdmin(admin.ModelAdmin):
     readonly_fields = ('description',)
 
     list_display = (
-        'order_id',
-        'payment_method',
+        'client',
+        'payment_method_order',
+        'payment_method_delivery',
         'create_at',
         'status',
-        'client',
         'deliveryHour',
         'deliveryAdress',
         'get_pizza_id',
@@ -58,12 +59,12 @@ class ordersAdmin(admin.ModelAdmin):
         'pizza_and_extratopping_price',
         'total_price',
     )
-    search_fields = (
+    """search_fields = (
         'client',
         'pizzas',
         'extratoppings',
         'status',
-    )
+    )"""
 
     def get_pizza_id(self, obj):
         return ", ".join([pizza.name for pizza in obj.pizzas.all()])
@@ -99,7 +100,7 @@ class PizzaAdmin(admin.ModelAdmin):
             'size',
         )
 
-    class Media:      
+    class Media:
         js = ('izouapp/js/custom_admin.js',)
 
 

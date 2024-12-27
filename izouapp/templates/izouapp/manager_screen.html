@@ -109,10 +109,81 @@
 }
 
 
+#badgeNumPending {
+  position: absolute;
+  top: 0;
+  right: 0;
+  transform: translate(50%, -50%);
+}
 
   </style>
 </head>
 <body class="">
+
+<!-- Alert Button -->
+<button class="btn btn-primary position-fixed bottom-0 end-0 m-3" data-bs-toggle="modal" data-bs-target="#ordersModal"  style="z-index: 1050;">
+En attente
+<span class="badge bg-danger rounded-pill" id="badgeNumPending"></span>
+</button>
+  <!-- Modal list -->
+  <div class="modal fade" id="ordersModal" tabindex="-1" aria-labelledby="ordersModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title text-center" id="ordersModalLabel">Commandes en attente de livraison</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body justify-content-center">
+            {% if pending_orders %}
+            <table class='table table-striped table-hover table-bordered'>
+                <thead>
+                    <tr class="align-middle">
+                        <th scope="col">No.</th>
+                        <th scope="col">Infos client</th>
+                        <th scope="col">Commandes</th>
+                        <th scope="col">Heure livraison</th>
+                        <th scope="col">Livreur</th>
+                        <th scope="col">Prix pizza + suppléments</th>
+                        <th scope="col">Prix livraison</th>
+                        <th scope="col">Total</th>
+                    </tr>
+                </thead>
+                <tbody id="box_pending_orders">
+                    {% for pending in pending_orders%}
+                    <tr class="align-middle">
+                        <th scope="row">{{forloop.counter}}</th>
+                        <td>{{pending.a}}<br>{{pending.b}}<br>{{pending.c}}</td>
+                        <td class="multiline text-start">
+                            {% for desc in pending.d %}
+                                <small class="text-break">{{desc.infos}};</small><br>
+                            {% endfor %}
+                        </td>
+                        <td>{{pending.e}}</td>
+                        <td>{{pending.f}}</td>
+                        <td>
+                            {{ pending.g }}
+                        </td>
+                        <td>
+                            {{ pending.h }}
+                        </td>
+                        <td>
+                            {{ pending.i }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+                <h2 class='text-center' >Aucune commande en attente</h2>
+            {% endif %}
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 
 <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel1" aria-hidden="true">
   <div class="modal-dialog modal-lg">
@@ -160,8 +231,15 @@
                 <!-- Second Row -->
                 <div class="row g-2 mt-2">
                   <div class="col-md-4">
-                    <select class="form-select" name="payment_method_from_order_to_deliver">
-                      <option selected>Mode de paiement</option>
+                    <select class="form-select" name="payment_method_order_from_order_to_deliver">
+                      <option selected>Mode de paiement de la commande</option>
+                      <option value="izoua">Chez Izoua</option>
+                      <option value="delivered_man">Chez le livreur</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <select class="form-select" name="payment_method_delivery_from_order_to_deliver">
+                      <option selected>Mode de paiement de la livraison</option>
                       <option value="izoua">Chez Izoua</option>
                       <option value="delivered_man">Chez le livreur</option>
                     </select>
@@ -415,8 +493,15 @@
               <!-- Second Row -->
               <div class="row g-2 mt-2">
                 <div class="col-md-4">
-                  <select class="form-select" name="payment_method_from_order_to_deliver" id="edit_payment_method_from_order_to_deliver">
-                    <option selected>Mode de paiement</option>
+                  <select class="form-select" name="payment_method_order_from_order_to_deliver" id="edit_payment_method_order_from_order_to_deliver">
+                    <option selected>Mode de paiement de la commande</option>
+                    <option value="izoua">Chez Izoua</option>
+                    <option value="delivered_man">Chez le livreur</option>
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <select class="form-select" name="payment_method_delivery_from_order_to_deliver" id="edit_payment_method_delivery_from_order_to_deliver">
+                    <option selected>Mode de paiement de la livraison</option>
                     <option value="izoua">Chez Izoua</option>
                     <option value="delivered_man">Chez le livreur</option>
                   </select>
@@ -740,7 +825,7 @@
       </li>
       <li>
         <a href="#" data-bs-toggle="modal" data-bs-target="#exampleModalLong">
-          <i class="bi bi-hourglass-split"></i><span>En attente</span><span style="color: blue; margin-left: 5px;" id="number_pending"></span>
+          <i class="bi bi-hourglass-split"></i><span>Modifications</span><span style="color: blue; margin-left: 5px;" id="number_pending"></span>
         </a>
       </li>
       <li>
@@ -883,7 +968,8 @@
                     <li><button class="dropdown-item" type="button" onclick="selectOption('Tout','all')">Tout</button></li>
                     <li><button class="dropdown-item" type="button" onclick="selectOption('Annulés','canceled')">Annulés</button></li>
                     <li><button class="dropdown-item" type="button" onclick="selectOption('Livrés','delivered')">Livrés</button></li>
-                    <li><button class="dropdown-item" type="button" onclick="selectOption('Sur place','on-site')">Livrés</button></li>
+                    <li><button class="dropdown-item" type="button" onclick="selectOption('Sur place','on-site')">Sur place</button></li>
+                    <li><button class="dropdown-item" type="button" onclick="selectOption('En attente','pending')">En attente</button></li>
                   </ul>
                 </div>
                 <!-- Champ caché pour transmettre la valeur -->
@@ -1508,6 +1594,9 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.reload();
         });
     });
+    if(document.getElementById('box_pending_orders')){
+        document.getElementById('badgeNumPending').innerText = document.getElementById('box_pending_orders').children.length;
+    }
   setDatasInDom();
 });
 
@@ -2313,12 +2402,22 @@ function editOrder(grande,petite,status,orderLine, order_id_, client_id, deliver
     document.getElementById('edit_client_name').value = order_dict.client_infos.name;
     document.getElementById('edit_client_number').value = order_dict.client_infos.number;
     document.getElementById('edit_client_adress').value = order_dict.client_infos.deliveryAdress;
-    if(order_dict.paymentMode==="izoua"){
-      document.getElementById('edit_payment_method_from_order_to_deliver').innerHTML = `<option>Mode de paiement</option>
+    if(order_dict.client_infos.paymentModeOrder==="izoua"){
+        document.getElementById('edit_payment_method_order_from_order_to_deliver').innerHTML = `<option>Mode de paiement de la commande</option>
                   <option selected value="izoua">Chez Izoua</option>
                   <option value="delivered_man">Chez le livreur</option>`;
     }else{
-    document.getElementById('edit_payment_method_from_order_to_deliver').innerHTML = `<option>Mode de paiement</option>
+        document.getElementById('edit_payment_method_order_from_order_to_deliver').innerHTML = `<option>Mode de paiement de la commande</option>
+                  <option value="izoua">Chez Izoua</option>
+                  <option selected value="delivered_man">Chez le livreur</option>`;
+    }
+
+    if(order_dict.client_infos.paymentModeDelivery==="izoua"){
+        document.getElementById('edit_payment_method_delivery_from_order_to_deliver').innerHTML = `<option>Mode de paiement de la livraison</option>
+                  <option selected value="izoua">Chez Izoua</option>
+                  <option value="delivered_man">Chez le livreur</option>`;
+    }else{
+    document.getElementById('edit_payment_method_delivery_from_order_to_deliver').innerHTML = `<option>Mode de paiement de la livraison</option>
                   <option value="izoua">Chez Izoua</option>
                   <option selected value="delivered_man">Chez le livreur</option>`;
     }
@@ -2444,27 +2543,6 @@ function setEditFormEmpty(form){
     document.getElementById('edit-hidden-textarea-from-order-on-delivery').innerHTML = '';
     document.getElementById('edit-summary-box-from-order-on-delivery').innerHTML = '';
   }
-}
-
-function deletePendingEdit(row,order){
-  document.getElementById(row).remove(); // supprime le tag html representant la commande à enlever des modifications en attente
-  fetch("{% static 'izouapp/data.json' %}")
-  .then(response => {
-    if (!response.ok) {
-        throw new Error('Erreur lors du chargement du fichier JSON');
-    }
-    return response.json(); // Convertit en objet JavaScript
-    })
-  .then(data => {
-    console.log(data.pending_to_edit.order);
-    //delete data.pending_to_edit.order;
-  })
-  .catch(error => {
-    console.log('Erreur lors du chargement des données', error);
-                }
-      )
-  const url = `{% url 'home' %}`;
-  window.location.href = url; // redirige vers la vue home
 }
 
 function insertSoldSizePizzaInForm(type_form){ // fonction qui insert les données de l'inventaire en temps réel

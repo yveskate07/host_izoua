@@ -4,6 +4,7 @@ import django
 from django.db import models
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumbers import parse, is_valid_number, NumberParseException
+from django.utils import timezone
 
 def validate_senegal_phone_number(value):
     try:
@@ -179,12 +180,15 @@ class orders(models.Model):
         ('pending','En attente'),
     ]
 
-    PAYMENT_METHOD = [('izoua','Izoua'),('delivered_man','Livreur')]
+    PAYMENT_METHOD = [('izoua','Izoua'),('delivered_man','Livreur')] # payment_method,
 
     order_id = models.AutoField(primary_key=True)
     deliveryHour = models.TimeField(blank=True, null=True) # champs à renseigner dans le cas d'une commande sur livraison
+    onSiteHour = models.TimeField(blank=False, null=False, default=timezone.now().time())
     deliveryAdress = models.CharField(max_length=50,  blank=True, null=True) # champs à renseigner dans le cas d'une commande sur livraison
-    payment_method = models.CharField(max_length=50,  blank=True, null=True, choices=PAYMENT_METHOD) # champs à renseigner dans le cas d'une commande sur livraison
+    payment_method_on_site = models.CharField(max_length=50, blank=False, null=False, choices=PAYMENT_METHOD, default='izoua') # champs à renseigner dans le cas d'une commande sur place
+    payment_method_order = models.CharField(max_length=50, blank=False, null=False, choices=PAYMENT_METHOD)  # champs à renseigner, moyen de paiement de la livraison
+    payment_method_delivery = models.CharField(max_length=50, blank=False, null=False, choices=PAYMENT_METHOD)  # champs à renseigner, moyen de paiement de la commande
     create_at = models.DateField(blank=False, null=False,default=django.utils.timezone.now)
     update_at = models.DateField(blank=True,default=django.utils.timezone.now)
     surplace = models.BooleanField(default=False)
