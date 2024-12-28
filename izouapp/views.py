@@ -1,4 +1,6 @@
 import json
+import time
+
 from django.middleware.csrf import get_token
 from bs4 import BeautifulSoup
 from django.contrib.auth.views import LoginView, LogoutView
@@ -11,12 +13,10 @@ from .models import orders, Pizza, Client, DailyInventory, ExtraTopping, PizzaSi
 from datetime import timedelta, datetime, date
 from django.contrib.auth.decorators import login_required
 import openpyxl
-from openpyxl.utils import get_column_letter
-from django.http import HttpResponse
+from django.http import HttpResponse, StreamingHttpResponse
 import os
 import locale
-from django.db.models import Sum
-from django.db.models import Sum, F, Q
+from django.db.models import Sum, Q
 
 locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
 
@@ -24,6 +24,20 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(script_dir)
 file_path = os.path.join(parent_dir, 'staticfiles', 'izouapp', 'data.json')
 
+
+def sse_notifications(request):
+    # Vérifiez si le client est autorisé (par exemple, utilisateur connecté)
+    if not request.user.is_authenticated:
+        return HttpResponse("Unauthorized", status=401)
+
+    # Créez une réponse de type 'StreamingHttpResponse'
+    def event_stream():
+        while True:
+            # Logique pour générer une notification
+            yield f"data: Nouvelle tâche à effectuer à {time.strftime('%H:%M:%S')}\n\n"
+            time.sleep(10)  # Attendre 10 secondes avant la prochaine notification
+
+    return StreamingHttpResponse(event_stream(), content_type="text/event-stream")
 
 # Create your views here.
 @login_required

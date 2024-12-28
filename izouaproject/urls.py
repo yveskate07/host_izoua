@@ -35,6 +35,7 @@ urlpatterns = [
     path('display-chart/', views.get_datas_to_chart, name='display_chart'),
     path('edit-1/', views.edit_order, name='edit_order1'),
     path('edit-2/', views.edit_order_if_granted, name='edit_order2'),
+    path('sse/notifications/', views.sse_notifications, name='sse_notifications'),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
