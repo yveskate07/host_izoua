@@ -1,6 +1,4 @@
 import json
-import time
-
 from django.middleware.csrf import get_token
 from bs4 import BeautifulSoup
 from django.contrib.auth.views import LoginView, LogoutView
@@ -22,22 +20,48 @@ locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(script_dir)
-file_path = os.path.join(parent_dir, 'staticfiles', 'izouapp', 'data.json')
+#file_path = os.path.join(parent_dir, 'static', 'izouapp', 'data.json') # pour le developpement
+#file_path = os.path.join(parent_dir, 'staticfiles', 'izouapp', 'data.json') # pour la production
+file_path = os.path.join(script_dir,'static', 'izouapp', 'data.json')
 
+@login_required
+def edit_order_status(request):
+    if request.method == 'POST':
+        order_id = request.POST.get('order_id')
 
-def sse_notifications(request):
-    # Vérifiez si le client est autorisé (par exemple, utilisateur connecté)
-    if not request.user.is_authenticated:
-        return HttpResponse("Unauthorized", status=401)
+        order_status = request.POST.get('order_status')
 
-    # Créez une réponse de type 'StreamingHttpResponse'
-    def event_stream():
-        while True:
-            # Logique pour générer une notification
-            yield f"data: Nouvelle tâche à effectuer à {time.strftime('%H:%M:%S')}\n\n"
-            time.sleep(10)  # Attendre 10 secondes avant la prochaine notification
+        order_to_edit = orders.objects.filter(order_id=order_id)
 
-    return StreamingHttpResponse(event_stream(), content_type="text/event-stream")
+        if len(order_to_edit):
+            obj_first = order_to_edit.first()
+        else:
+            return HttpResponse("Cette commande a été supprimée depuis l'interface admin")
+
+        if len(DailyInventory.objects.filter(date=get_date(request))):
+            current_inventory = DailyInventory.objects.filter(date=get_date(request))
+            soldTotalStart = {'Petite':current_inventory[0].sold_small_pizzas_count,
+                              'Grande':current_inventory[0].sold_large_pizzas_count}
+        else:
+            return HttpResponse("L'inventaire pour le jour choisi n'existe pas ou a été supprimé.")
+
+        soldSizes = obj_first.get_nb_sold_pizzas_by_sizes
+
+        first_status = obj_first.status
+
+        if order_status in ['delivered','pending'] and first_status == 'canceled':
+            current_inventory.update(sold_small_pizzas_count=soldTotalStart['Petite'] + soldSizes['Petite'], # si la commande passe de annulée à livrée,  alors le nombre de pizzas vendues de l'inventaire actuel est incrémenté du nombre de pizzas vendues dans cette commande
+                                     sold_large_pizzas_count=soldTotalStart['Grande'] + soldSizes['Grande'])
+
+        elif order_status == 'canceled' and first_status in ['delivered','pending']:
+            current_inventory.update(sold_small_pizzas_count=soldTotalStart['Petite'] - soldSizes['Petite'], # si la commande passe de livrée/en attente à annulée, alors le nombre de pizzas vendues de l'inventaire actuel est décrémenté du nombre de pizzas vendues dans cette commande
+                                     sold_large_pizzas_count=soldTotalStart['Grande'] - soldSizes['Grande'])
+
+        obj_first.status = order_status
+
+        obj_first.save()
+
+    return redirect(reverse('home'))
 
 # Create your views here.
 @login_required
@@ -644,7 +668,6 @@ def fetching_datas(request, filter_, date_to_print):
             total_delivery = orders_.aggregate(
                 total_delivery=Sum('deliveryPrice', filter=Q(deliveryPrice__isnull=False) & Q(payment_method_delivery='delivered_man'))
             )['total_delivery'] or 0
-            print('total_delivery: ', total_delivery)
 
             delivDict = {'name': deliMan.name, 'TotalPizzasSold': total_pizzas, 'TotalDeliv': total_delivery,
                          'Percent': 0.2 * total_delivery}

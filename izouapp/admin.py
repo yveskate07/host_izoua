@@ -2,8 +2,23 @@ from django.contrib import admin
 from django.contrib.auth.models import Group
 from .models import *
 
+
 # Register your models here.
 admin.site.unregister(Group)
+
+def check_and_update_inventory(obj):
+
+    if len(DailyInventory.objects.filter(date=obj.create_at)):
+        current_inventory = DailyInventory.objects.filter(date=obj.create_at)
+        soldTotalStart = {'Petite': current_inventory[0].sold_small_pizzas_count,
+                          'Grande': current_inventory[0].sold_large_pizzas_count}
+
+        current_inventory.update(
+            sold_small_pizzas_count=soldTotalStart['Petite'] - obj.get_nb_sold_pizzas_by_sizes['Petite'],
+            # son solde de petites / grandes pizzas s'ajoute à l'inventaire du même jour
+            sold_large_pizzas_count=soldTotalStart['Grande'] - obj.get_nb_sold_pizzas_by_sizes['Grande'])
+
+
 
 @admin.register(PizzaName)
 class PizzaNameAdmin(admin.ModelAdmin):
@@ -30,6 +45,13 @@ class DeliveryPersonAdmin(admin.ModelAdmin):
 
 @admin.register(orders)
 class ordersAdmin(admin.ModelAdmin):
+
+    def delete_queryset(self, request, queryset):
+        for obj in queryset:
+            check_and_update_inventory(obj)
+
+        super().delete_queryset(request, queryset)
+
     fields = ('deliveryHour',
               'deliveryAdress',
               'payment_method_order',
@@ -39,7 +61,6 @@ class ordersAdmin(admin.ModelAdmin):
               'surplace',
               'status',
               'deliveryPerson',
-              'pizzas',
               'client',
               'deliveryPrice',
               'edit_requested',
@@ -65,6 +86,11 @@ class ordersAdmin(admin.ModelAdmin):
         'extratoppings',
         'status',
     )"""
+    def delete_model(self, request, obj): # quand une commande est supprimée
+
+        check_and_update_inventory(obj)
+
+        super().delete_model(request, obj)
 
     def get_pizza_id(self, obj):
         return ", ".join([pizza.name for pizza in obj.pizzas.all()])

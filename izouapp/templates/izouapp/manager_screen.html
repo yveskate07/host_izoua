@@ -231,21 +231,21 @@ En attente
                 <!-- Second Row -->
                 <div class="row g-2 mt-2">
                   <div class="col-md-4">
-                    <select class="form-select" name="payment_method_order_from_order_to_deliver">
+                    <select class="form-select" required name="payment_method_order_from_order_to_deliver">
                       <option selected>Mode de paiement de la commande</option>
                       <option value="izoua">Chez Izoua</option>
                       <option value="delivered_man">Chez le livreur</option>
                     </select>
                   </div>
                   <div class="col-md-4">
-                    <select class="form-select" name="payment_method_delivery_from_order_to_deliver">
+                    <select class="form-select" required name="payment_method_delivery_from_order_to_deliver">
                       <option selected>Mode de paiement de la livraison</option>
                       <option value="izoua">Chez Izoua</option>
                       <option value="delivered_man">Chez le livreur</option>
                     </select>
                   </div>
                   <div class="col-md-3">
-                    <input type="number" class="form-control" placeholder="Prix de la livraison" name = "price_delivery">
+                    <input type="number" class="form-control" placeholder="Prix de la livraison" required name = "price_delivery">
                   </div>
                   <div class="col-md-3">
                     <select class="form-select" name="delivery_man" id="delivery_man" required>
@@ -253,7 +253,7 @@ En attente
                   </div>
                   <div class="col-md-6 d-flex align-items-center">
                     <label for="deliveryTime">Heure de livraison:</label>
-                    <input type="time" id="deliveryTime" class="form-control" name = "delivery_time">
+                    <input type="time" id="deliveryTime" class="form-control" required name = "delivery_time">
                   </div>
                 </div>
                   <hr class="my-4">
@@ -263,11 +263,11 @@ En attente
                   <label style="margin-top: 15px;">Pizza Normale</label>
                   <div class="row g-2 mt-2">
                     <div class="col-md-3">
-                      <select class="form-select select-pizza" id="pizza_name_to_deliver" name="pizza_name_to_deliver">
+                      <select class="form-select select-pizza" id="pizza_name_to_deliver" required name="pizza_name_to_deliver">
                       </select>
                     </div>
                     <div class="col-md-3">
-                      <select class="form-select select-size" id="normal_pizza_size_to_deliver" name ="normal_pizza_size_to_deliver">
+                      <select class="form-select select-size" id="normal_pizza_size_to_deliver" required name ="normal_pizza_size_to_deliver">
                       </select>
                     </div>
                     <div class="dropdown col-md-3">
@@ -299,12 +299,12 @@ En attente
                   <div class="row mb-3">
                     <div class="col-md-3">
                       <h6 class="text-center">Moitié 1</h6>
-                      <select class="form-select select-pizza" name="pizza_half1_to_deliver" id="pizza_half1_to_deliver">
+                      <select class="form-select select-pizza" required name="pizza_half1_to_deliver" id="pizza_half1_to_deliver">
                       </select>
                     </div>
                     <div class="col-md-3">
                       <h6 class="text-center">Moitié 2</h6>
-                      <select class="form-select select-pizza" name="pizza_half2_to_deliver" id="pizza_half2_to_deliver">
+                      <select class="form-select select-pizza" required name="pizza_half2_to_deliver" id="pizza_half2_to_deliver">
                       </select>
                     </div>
                     <div class="dropdown col-md-2"  style="display: flex; align-items:flex-end">
@@ -320,7 +320,7 @@ En attente
                       </ul>
                     </div>
                     <div class="col-md-2"  style="display: flex; align-items:flex-end">
-                      <select class="form-select select-size" name="pizza_half_size_to_deliver" id="pizza_half_size_to_deliver">
+                      <select class="form-select select-size" required name="pizza_half_size_to_deliver" id="pizza_half_size_to_deliver">
                       </select>
                     </div>
                     <div class="col-md-2"  style="display: flex; align-items:flex-end">
@@ -362,11 +362,11 @@ En attente
                   <label style="margin-top: 15px;">Pizza</label>
                   <div class="row g-2 mt-2">
                     <div class="col-md-3">
-                      <select class="form-select select-pizza" name="pizza_name_onsite" id="pizza_name_onsite">
+                      <select class="form-select select-pizza" required name="pizza_name_onsite" id="pizza_name_onsite">
                       </select>
                     </div>
                     <div class="col-md">
-                      <select class="form-select select-size" name="normal_pizza_size_onsite" id="normal_pizza_size_onsite">
+                      <select class="form-select select-size" required name="normal_pizza_size_onsite" id="normal_pizza_size_onsite">
                       </select>
                     </div>
                     <div class="dropdown col-md-3">
@@ -399,14 +399,14 @@ En attente
                   <div class="col-md-3">
                     <h6 class="text-center">Moitié 1</h6>
                     <div class="dropdown">
-                      <select class="form-select select-pizza" name="pizza_half1_onsite" id="pizza_half1_onsite">
+                      <select class="form-select select-pizza" required name="pizza_half1_onsite" id="pizza_half1_onsite">
                       </select>
                     </div>
                   </div>
                   <div class="col-md-3">
                     <h6 class="text-center">Moitié 2</h6>
                     <div class="dropdown">
-                      <select class="form-select select-pizza" name="pizza_half2_onsite" id="pizza_half2_onsite">
+                      <select class="form-select select-pizza" required name="pizza_half2_onsite" id="pizza_half2_onsite">
                       </select>
                     </div>
                   </div>
@@ -424,7 +424,7 @@ En attente
                       </ul>
                   </div>
                   <div class="col-md-2"  style="display: flex; align-items:flex-end">
-                    <select class="form-select select-size" name="special_pizza_size_onsite" id="special_pizza_size_onsite">
+                    <select class="form-select select-size" required name="special_pizza_size_onsite" id="special_pizza_size_onsite">
                     </select>
                   </div>
                   <div class="col-md-2"  style="display: flex; align-items:flex-end">
@@ -598,7 +598,7 @@ En attente
                 <select name="editOrderStatus" id="editOrderDelivStatus" class="form-select">
                   <option value="delivered">Livrée</option>
                   <option value="canceled">Annulée</option>
-                  <option value="canceled">En attente</option>
+                  <option value="pending">En attente</option>
                 </select>
               </div>
 
@@ -1010,11 +1010,35 @@ En attente
                   <td class="text-center">{{ order.c }}</td>
                   <td class="text-center">
                     {% if order.d == 'delivered' %}
-                      <span class="badge bg-success">Livrée</span>
+                    <form action="{% url 'change_status' %}" method="POST">
+                      {% csrf_token %}
+                      <input type="hidden" name="order_id" value="{{order.a}}">
+                      <select name="order_status" class="form-select changeStatus badge bg-success" onchange="updateClass(this)">
+                        <option class="badge bg-success" selected value="delivered">Livrée</option>
+                        <option class="badge bg-danger" value="canceled">Annulée</option>
+                        <option class="badge bg-secondary" value="pending">En attente</option>
+                      </select>
+                    </form>
                     {% elif order.d == 'canceled' %}
-                      <span class="badge bg-danger">Annulée</span>
+                    <form action="{% url 'change_status' %}" method="POST">
+                      {% csrf_token %}
+                      <input type="hidden" name="order_id" value="{{order.a}}">
+                      <select name="order_status" class="form-select changeStatus badge bg-danger" onchange="updateClass(this)">
+                        <option class="badge bg-success" value="delivered">Livrée</option>
+                        <option class="badge bg-danger" selected value="canceled">Annulée</option>
+                        <option class="badge bg-secondary" value="pending">En attente</option>
+                      </select>
+                    </form>
                     {% elif order.d == 'pending' %}
-                    <span class="badge bg-secondary">En attente</span>
+                    <form action="{% url 'change_status' %}" method="POST">
+                      {% csrf_token %}
+                      <input type="hidden" name="order_id" value="{{order.a}}">
+                      <select name="order_status" class="form-select changeStatus badge bg-secondary" onchange="updateClass(this)">
+                        <option class="badge bg-success" value="delivered">Livrée</option>
+                        <option class="badge bg-danger" value="canceled">Annulée</option>
+                        <option class="badge bg-secondary" selected value="pending">En attente</option>
+                      </select>
+                    </form>
                     {% else %}
                     <span class="badge bg-warning">Sur place</span>
                     {% endif %}
@@ -1237,6 +1261,24 @@ const sidebar = document.getElementById("sidebar");
 const toggleBtn = document.getElementById("toggleSidebar");
 const content = document.querySelector(".content");
 
+function updateClass(selectElement) {
+        // Supprime toutes les classes existantes liées au style du statut
+        selectElement.classList.remove('bg-secondary', 'bg-success', 'bg-danger');
+
+        // Récupère la classe de l'option sélectionnée
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+        const optionClass = selectedOption.getAttribute('class');
+
+        if (optionClass) {
+            // Divise la classe en tokens individuels si elle contient plusieurs classes
+            optionClass.split(' ').forEach(cls => {
+                selectElement.classList.add(cls);
+            });
+        }
+
+        // Soumet automatiquement le formulaire
+        selectElement.form.submit();
+    }
 toggleBtn.addEventListener("click", () => {
   sidebar.classList.toggle("collapsed");
   content.classList.toggle("collapsed");

@@ -224,6 +224,18 @@ class orders(models.Model):
     def __str__(self):
         return f'Commande No {str(self.order_id)} du {str(self.create_at)}'
 
+    @property
+    def get_nb_sold_pizzas_by_sizes(self):
+        sold={'Petite':0,'Grande':0}
+        for pizza in self.pizzas.all():
+            if pizza.size=='Petite':
+                sold['Petite'] += 1
+            else:
+                sold['Grande'] += 1
+
+        return sold
+
+
 class DailyInventory(models.Model):
     inventaire_id = models.AutoField(primary_key=True)
     small_pizzas_count = models.IntegerField(blank=False, null=False, default=0)
