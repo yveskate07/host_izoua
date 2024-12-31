@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pizza Analysis Reports</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <!-- Custom CSS -->
+  <style>
+    body {
+      background-color: #F8F9FA;
+    }
+    .reports-title {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-top: 20px;
+      text-align: center;
+      color: #FF6600;
+    }
+    .charts-container {
+      display: flex;
+      gap: 1rem;
+      margin-top: 20px;
+    }
+    .chart-box {
+      background: #FFFFFF;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      flex: 1;
+    }
+    .region-chart-box {
+      margin-top: 1rem;
+      background: #FFFFFF;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      overflow-y: auto;
+      max-height: 400px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="reports-title">Pizza Analysis Reports</h1>
+    <p class="text-center text-muted">
+      Comprehensive analysis of daily, weekly, and regional pizza trends.
+    </p>
+    <div class="charts-container">
+      <!-- Daily Bar Chart -->
+      <div class="chart-box">
+        <h5 class="text-center text-primary"><i class="fas fa-chart-bar"></i> Daily Sales</h5>
+        <canvas id="dailyBarChart"></canvas>
+      </div>
+      <!-- Pizza Names Pie Chart -->
+      <div class="chart-box">
+        <h5 class="text-center text-primary"><i class="fas fa-chart-pie"></i> Pizza Variety</h5>
+        <canvas id="pizzaPieChart"></canvas>
+      </div>
+    </div>
+    <!-- Regional Comparison Chart -->
+    <div class="region-chart-box">
+      <h5 class="text-center text-primary"><i class="fas fa-chart-area"></i> Regional Pizza Consumption</h5>
+      <canvas id="regionComparisonChart"></canvas>
+    </div>
+  </div>
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Custom JS -->
+  <script>
+    // Daily Bar Chart
+    const dailyBarChartCtx = document.getElementById('dailyBarChart').getContext('2d');
+    new Chart(dailyBarChartCtx, {
+      type: 'bar',
+      data: {
+        labels: ['Big Pizzas', 'Small Pizzas', 'Mixed Pizzas'],
+        datasets: [{
+          label: 'Daily Sales',
+          data: [25, 15, 10],
+          backgroundColor: ['#FF6B6B', '#FFA502', '#1E90FF'],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    });
+    // Pizza Variety Pie Chart
+    const pizzaPieChartCtx = document.getElementById('pizzaPieChart').getContext('2d');
+    new Chart(pizzaPieChartCtx, {
+      type: 'pie',
+      data: {
+        labels: ['Margherita', 'Pepperoni', 'BBQ Chicken', 'Veggie', 'Hawaiian'],
+        datasets: [{
+          data: [30, 40, 20, 10, 15],
+          backgroundColor: ['#FF6B6B', '#FFA502', '#1E90FF', '#2ED573', '#FF6348']
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'bottom'
+          }
+        }
+      }
+    });
+    // Regional Comparison Chart
+    const regionComparisonChartCtx = document.getElementById('regionComparisonChart').getContext('2d');
+    new Chart(regionComparisonChartCtx, {
+      type: 'bar',
+      data: {
+        labels: ['North', 'South', 'East', 'West', 'Central','North', 'South', 'East', 'West', 'Central'],
+        datasets: [
+          {
+            label: 'Small Pizzas',
+            data: [40, 20, 30, 10, 50,40, 20, 30, 10, 50],
+            backgroundColor: '#FFA502'
+          },
+          {
+            label: 'Big Pizzas',
+            data: [60, 40, 50, 20, 70,40, 20, 30, 10, 50],
+            backgroundColor: '#FF6B6B'
+          },
+          {
+            label: 'Mixed Pizzas',
+            data: [30, 15, 20, 25, 35,40, 20, 30, 10, 50],
+            backgroundColor: '#1E90FF'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'bottom'
+          }
+        },
+        scales: {
+          x: {
+            stacked: true
+          },
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

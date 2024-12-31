@@ -52,6 +52,8 @@ class ordersAdmin(admin.ModelAdmin):
 
         super().delete_queryset(request, queryset)
 
+    list_per_page = 30
+
     fields = ('deliveryHour',
               'deliveryAdress',
               'payment_method_order',

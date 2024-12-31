@@ -11,20 +11,42 @@ from .models import orders, Pizza, Client, DailyInventory, ExtraTopping, PizzaSi
 from datetime import timedelta, datetime, date
 from django.contrib.auth.decorators import login_required
 import openpyxl
-from django.http import HttpResponse, StreamingHttpResponse
+from openpyxl.utils import get_column_letter
+from django.http import HttpResponse
 import os
 import locale
-from django.db.models import Sum, Q
+from django.db.models import Sum
+from django.db.models import Sum, F, Q
 
 locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(script_dir)
-#file_path = os.path.join(parent_dir, 'static', 'izouapp', 'data.json') # pour le developpement
-#file_path = os.path.join(parent_dir, 'staticfiles', 'izouapp', 'data.json') # pour la production
-file_path = os.path.join(script_dir,'static', 'izouapp', 'data.json')
+file_path = os.path.join(parent_dir, 'staticfiles', 'izouapp', 'data.json')
 
+
+# Create your views here.
 @login_required
+def add_inventory(request):  # fonction qui cree et ajoute un nouvel inventaire dans la bd
+    if request.method == "POST":
+        date = datetime.strptime(request.POST.get('addDate'), "%Y-%m-%d").date()
+        grande = int(request.POST.get('addGrande'))
+        mini = int(request.POST.get('addMini'))
+
+        DailyInventory.objects.create(small_pizzas_count=mini, large_pizzas_count=grande, date=date)
+
+        return redirect(reverse('home'))
+
+    return redirect(reverse('home'))
+
+
+class IzouaLoginView(LoginView):
+    form_class = UserLoginForm
+
+
+class IzouaLogoutView(LogoutView):
+    next_page = '/login'
+
 def edit_order_status(request):
     if request.method == 'POST':
         order_id = request.POST.get('order_id')
@@ -62,29 +84,6 @@ def edit_order_status(request):
         obj_first.save()
 
     return redirect(reverse('home'))
-
-# Create your views here.
-@login_required
-def add_inventory(request):  # fonction qui cree et ajoute un nouvel inventaire dans la bd
-    if request.method == "POST":
-        date = datetime.strptime(request.POST.get('addDate'), "%Y-%m-%d").date()
-        grande = int(request.POST.get('addGrande'))
-        mini = int(request.POST.get('addMini'))
-
-        DailyInventory.objects.create(small_pizzas_count=mini, large_pizzas_count=grande, date=date)
-
-        return redirect(reverse('home'))
-
-    return redirect(reverse('home'))
-
-
-class IzouaLoginView(LoginView):
-    form_class = UserLoginForm
-
-
-class IzouaLogoutView(LogoutView):
-    next_page = '/login'
-
 
 @login_required
 def to_admin(request):
@@ -545,7 +544,7 @@ def fetching_datas(request, filter_, date_to_print):
 
                         order = {'a': data.order_id, 'b': client.name, 'c': pizza_names, 'd': data.status,
                                  'e': data.total_price,
-                                 'f': data.create_at,
+                                 'f': data.deliveryHour,
                                  'g': data.deliveryPerson if data.surplace == False else 'Commandé sur place',
                                  'h': data.surplace, 'i': data.client.id_client,
                                  'j': data.deliveryPerson.id_deliveryman if data.surplace == False else None,
@@ -664,13 +663,15 @@ def fetching_datas(request, filter_, date_to_print):
                 create_at=request.session['date_selected'],
                 status='delivered'
             )
+            numb_delivery = len(orders_)
             total_pizzas = sum([order.pizza_and_extratopping_price for order in orders_ if order.payment_method_order == 'delivered_man'])
             total_delivery = orders_.aggregate(
                 total_delivery=Sum('deliveryPrice', filter=Q(deliveryPrice__isnull=False) & Q(payment_method_delivery='delivered_man'))
             )['total_delivery'] or 0
+            print('total_delivery: ', total_delivery)
 
             delivDict = {'name': deliMan.name, 'TotalPizzasSold': total_pizzas, 'TotalDeliv': total_delivery,
-                         'Percent': 0.2 * total_delivery}
+                         'Percent': 0.2 * total_delivery,'numb_delivery':numb_delivery}
             context['delivery_men_infos'].append(delivDict)
 
     preselected_datetime = datetime.strptime(

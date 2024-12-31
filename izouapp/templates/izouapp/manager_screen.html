@@ -991,7 +991,7 @@ En attente
                 <th class="text-center">Commande</th>
                 <th class="text-center">Statut</th>
                 <th class="text-center">Total</th>
-                <th class="text-center">Date</th>
+                <th class="text-center">Heure livraison</th>
                 <th class="text-center">Livreur</th>
                 <th class="text-center">Modifier</th>
               </tr>
@@ -1173,8 +1173,9 @@ En attente
 
 
             <ul class="list-group list-group-flush">
-              <li class="list-group-item">Total pizza vendu: {{deliver.TotalPizzasSold}} FCFA</li>
-              <li class="list-group-item">Total livraison: {{deliver.TotalDeliv}} FCFA</li>
+              <li class="list-group-item">Total livraisons: {{deliver.numb_delivery}}</li>
+              <li class="list-group-item">Total généré (commandes): {{deliver.TotalPizzasSold}} FCFA</li>
+              <li class="list-group-item">Total généré (livraisons): {{deliver.TotalDeliv}} FCFA</li>
               <li class="list-group-item">Pourcentage (20%): {{deliver.Percent}} FCFA</li>
             </ul>
           </div>
