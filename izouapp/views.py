@@ -11,18 +11,18 @@ from .models import orders, Pizza, Client, DailyInventory, ExtraTopping, PizzaSi
 from datetime import timedelta, datetime, date
 from django.contrib.auth.decorators import login_required
 import openpyxl
-from openpyxl.utils import get_column_letter
 from django.http import HttpResponse
 import os
 import locale
-from django.db.models import Sum
 from django.db.models import Sum, F, Q
 
 locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(script_dir)
-file_path = os.path.join(parent_dir, 'staticfiles', 'izouapp', 'data.json')
+#file_path = os.path.join(parent_dir, 'staticfiles', 'izouapp', 'data.json') # pour lea production
+
+file_path = os.path.join(script_dir, 'static', 'izouapp', 'data.json')
 
 
 # Create your views here.
@@ -668,7 +668,6 @@ def fetching_datas(request, filter_, date_to_print):
             total_delivery = orders_.aggregate(
                 total_delivery=Sum('deliveryPrice', filter=Q(deliveryPrice__isnull=False) & Q(payment_method_delivery='delivered_man'))
             )['total_delivery'] or 0
-            print('total_delivery: ', total_delivery)
 
             delivDict = {'name': deliMan.name, 'TotalPizzasSold': total_pizzas, 'TotalDeliv': total_delivery,
                          'Percent': 0.2 * total_delivery,'numb_delivery':numb_delivery}
