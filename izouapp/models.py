@@ -16,6 +16,13 @@ def validate_senegal_phone_number(value):
     except NumberParseException:
         raise ValueError("Numéro de téléphone non valide.")
 
+class Notification(models.Model):
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.message
+
 # Create your models here.
 class DeliveryPerson(models.Model):
     id_deliveryman = models.AutoField(primary_key=True)

@@ -120,6 +120,9 @@
 </head>
 <body class="">
 
+<!-- Alert Div -->
+<div id="notifications"></div>
+
 <!-- Alert Button -->
 <button class="btn btn-primary position-fixed bottom-0 end-0 m-3" data-bs-toggle="modal" data-bs-target="#ordersModal"  style="z-index: 1050;">
 En attente
@@ -1261,6 +1264,45 @@ En attente
 const sidebar = document.getElementById("sidebar");
 const toggleBtn = document.getElementById("toggleSidebar");
 const content = document.querySelector(".content");
+
+const websocketProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+        const wsEndpoint = `${websocketProtocol}://${window.location.host}/ws/notifications/`;
+        const socket = new WebSocket(wsEndpoint);
+
+      // New event listener to capture incoming messages
+      socket.addEventListener("message", (event) => {
+        const messageData = JSON.parse(event.data);
+        console.log("Received notification:", messageData.message); // Log the received message to the console
+        showNotification(messageData.message);
+      });
+
+      function showNotification(notificationHTML) {
+      const notificationsContainer = document.getElementById("notifications");
+
+      // Create a new alert div
+      const alertDiv = document.createElement("div");
+      alertDiv.classList.add("alert", "alert-dismissible", "alert-primary", "fade", "show", "mb-0");
+      alertDiv.setAttribute("role", "alert");
+      alertDiv.innerHTML = notificationHTML;
+
+          // Create the close button
+      const closeButton = document.createElement("button");
+      closeButton.setAttribute("type", "button");
+      closeButton.classList.add("btn-close");
+      closeButton.setAttribute("data-bs-dismiss", "alert");
+      closeButton.setAttribute("aria-label", "Close");
+      alertDiv.appendChild(closeButton);
+
+      notificationsContainer.appendChild(alertDiv);
+    }
+
+    socket.onopen = (event) => {
+      console.log("WebSocket connection opened!");
+    };
+
+    socket.onclose = (event) => {
+      console.log("WebSocket connection closed!");
+    };
 
 function updateClass(selectElement) {
         // Supprime toutes les classes existantes liées au style du statut

@@ -20,6 +20,7 @@ from django.urls import path
 from izouapp import views
 from django.conf import settings
 from django.conf.urls.static import static
+from izouapp.consumers import NotificationConsumer
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -38,4 +39,7 @@ urlpatterns = [
     path('change-order-status/', views.edit_order_status, name='change_status'),
 ]
 
+websocket_urlpatterns = [
+    path("ws/notifications/", NotificationConsumer.as_asgi())
+]
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
