@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from email.policy import default
 
 import django
@@ -205,7 +206,7 @@ class orders(models.Model):
     pizzas = models.ManyToManyField(Pizza)
     client = models.ForeignKey(Client, on_delete=models.SET_NULL, null=True)
     deliveryPrice = models.IntegerField(null=True, blank=True, default=0) # champs à renseigner dans le cas d'une commande sur livraison
-
+    notified = models.BooleanField(default=False)
 
     def description(self):
         return f'Base de données contenant les informations des commandes livrées ou annulées. \nedit requested: indique si une modification pour cette commande a été demandée, pour refuser cette modification, decocher cette case.'
@@ -231,6 +232,9 @@ class orders(models.Model):
     def __str__(self):
         return f'Commande No {str(self.order_id)} du {str(self.create_at)}'
 
+    def str_for_alert(self):
+        return f"La commande de M/Mme {self.client} {self.deliveryAdress} est à livrer dans moins de 30 min"
+
     @property
     def get_nb_sold_pizzas_by_sizes(self):
         sold={'Petite':0,'Grande':0}
@@ -241,6 +245,14 @@ class orders(models.Model):
                 sold['Grande'] += 1
 
         return sold
+
+    def is_deadline_close(self):
+
+        now = datetime.now()  # Date et heure actuelles
+        today_delivery_time = datetime.combine(now.date(), self.deliveryHour)  # Combine la date du jour avec l'heure de livraison
+
+        time_difference = today_delivery_time - now  # Calculer la différence
+        return timedelta(0) <= time_difference <= timedelta(minutes=30)
 
 
 class DailyInventory(models.Model):
