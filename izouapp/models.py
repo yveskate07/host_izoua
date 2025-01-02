@@ -179,6 +179,9 @@ class Client(models.Model):
 
         return self.name
 
+def get_current_time():
+    return django.utils.timezone.now().time()
+
 class orders(models.Model):
 
     STATUS_CHOICES = [
@@ -192,7 +195,7 @@ class orders(models.Model):
 
     order_id = models.AutoField(primary_key=True)
     deliveryHour = models.TimeField(blank=True, null=True) # champs à renseigner dans le cas d'une commande sur livraison
-    onSiteHour = models.TimeField(blank=False, null=False, default=timezone.now().time())
+    onSiteHour = models.TimeField(blank=False, null=False, default=get_current_time)
     deliveryAdress = models.CharField(max_length=50,  blank=True, null=True) # champs à renseigner dans le cas d'une commande sur livraison
     payment_method_on_site = models.CharField(max_length=50, blank=False, null=False, choices=PAYMENT_METHOD, default='izoua') # champs à renseigner dans le cas d'une commande sur place
     payment_method_order = models.CharField(max_length=50, blank=False, null=False, choices=PAYMENT_METHOD)  # champs à renseigner, moyen de paiement de la livraison

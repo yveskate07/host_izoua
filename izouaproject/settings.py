@@ -33,6 +33,7 @@ ALLOWED_HOSTS = env.list('ALLOWED_HOSTS') # doit contenir l'url du site qui héb
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -43,7 +44,6 @@ INSTALLED_APPS = [
     'izouapp',
     'phonenumber_field',
     "accounts",
-    'channels',
 ]
 
 MIDDLEWARE = [
@@ -56,6 +56,9 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'livereload.middleware.LiveReloadScript',
 ]
+
+WSGI_APPLICATION = 'izouaproject.wsgi.application'
+ASGI_APPLICATION = 'izouaproject.asgi.application'
 
 ROOT_URLCONF = 'izouaproject.urls'
 
@@ -74,9 +77,6 @@ TEMPLATES = [
         },
     },
 ]
-
-WSGI_APPLICATION = 'izouaproject.wsgi.application'
-ASGI_APPLICATION = 'izouaproject.asgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases

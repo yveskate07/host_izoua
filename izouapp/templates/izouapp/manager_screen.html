@@ -108,7 +108,6 @@
   color: #555;
 }
 
-
 #badgeNumPending {
   position: absolute;
   top: 0;
@@ -116,12 +115,19 @@
   transform: translate(50%, -50%);
 }
 
+.toast-container {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    z-index: 1050;
+}
+
   </style>
 </head>
 <body class="">
 
 <!-- Alert Div -->
-<div id="notifications"></div>
+<div class="toast-container"></div>
 
 <!-- Alert Button -->
 <button class="btn btn-primary position-fixed bottom-0 end-0 m-3" data-bs-toggle="modal" data-bs-target="#ordersModal"  style="z-index: 1050;">
@@ -129,7 +135,7 @@ En attente
 <span class="badge bg-danger rounded-pill" id="badgeNumPending"></span>
 </button>
   <!-- Modal list -->
-  <div class="modal fade" id="ordersModal" tabindex="-1" aria-labelledby="ordersModalLabel" aria-hidden="true">
+<div class="modal fade" id="ordersModal" tabindex="-1" aria-labelledby="ordersModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl">
       <div class="modal-content">
         <div class="modal-header">
@@ -1265,44 +1271,88 @@ const sidebar = document.getElementById("sidebar");
 const toggleBtn = document.getElementById("toggleSidebar");
 const content = document.querySelector(".content");
 
-const websocketProtocol = window.location.protocol === "https:" ? "wss" : "ws";
-        const wsEndpoint = `${websocketProtocol}://${window.location.host}/ws/notifications/`;
-        const socket = new WebSocket(wsEndpoint);
+let url = `ws://${window.location.host}/ws/socket-server/`
 
-      // New event listener to capture incoming messages
-      socket.addEventListener("message", (event) => {
-        const messageData = JSON.parse(event.data);
-        console.log("Received notification:", messageData.message); // Log the received message to the console
-        showNotification(messageData.message);
-      });
+const chatSocket = new WebSocket(url)
 
-      function showNotification(notificationHTML) {
-      const notificationsContainer = document.getElementById("notifications");
+console.log('chatSocket: ',chatSocket);
 
-      // Create a new alert div
-      const alertDiv = document.createElement("div");
-      alertDiv.classList.add("alert", "alert-dismissible", "alert-primary", "fade", "show", "mb-0");
-      alertDiv.setAttribute("role", "alert");
-      alertDiv.innerHTML = notificationHTML;
+chatSocket.onmessage = function(e){
+    let data = JSON.parse(e.data)
+    console.log('Data:', data)
 
-          // Create the close button
-      const closeButton = document.createElement("button");
-      closeButton.setAttribute("type", "button");
-      closeButton.classList.add("btn-close");
-      closeButton.setAttribute("data-bs-dismiss", "alert");
-      closeButton.setAttribute("aria-label", "Close");
-      alertDiv.appendChild(closeButton);
+    createToast(data.message);
+}
 
-      notificationsContainer.appendChild(alertDiv);
-    }
+function createToast(msg) {
+    // Conteneur de la toast
+    const toastContainer = document.querySelector('.toast-container');
 
-    socket.onopen = (event) => {
-      console.log("WebSocket connection opened!");
-    };
+    // Créer la structure HTML de la toast
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+    toast.setAttribute('aria-atomic', 'true');
 
-    socket.onclose = (event) => {
-      console.log("WebSocket connection closed!");
-    };
+    // Header de la toast
+    const toastHeader = document.createElement('div');
+    toastHeader.className = 'toast-header';
+
+    const toastImage = document.createElement('img');
+    toastImage.src = '{% static 'izouapp/images/red_square.jpg' %}';
+    toastImage.className = 'rounded me-2';
+    toastImage.alt = '...';
+
+    const toastTitle = document.createElement('strong');
+    toastTitle.className = 'me-auto';
+    toastTitle.textContent = 'Livraison imminente';
+
+    const toastTime = document.createElement('small');
+    toastTime.className = 'text-muted';
+    toastTime.textContent = 'maintenant';
+
+    const closeButton = document.createElement('button');
+    closeButton.type = 'button';
+    closeButton.className = 'btn-close';
+    closeButton.setAttribute('data-bs-dismiss', 'toast');
+    closeButton.setAttribute('aria-label', 'Close');
+
+    // Ajouter les éléments au header
+    toastHeader.appendChild(toastImage);
+    toastHeader.appendChild(toastTitle);
+    toastHeader.appendChild(toastTime);
+    toastHeader.appendChild(closeButton);
+
+    // Corps de la toast
+    const toastBody = document.createElement('div');
+    toastBody.className = 'toast-body';
+    toastBody.textContent = msg;
+
+    // Ajouter le header et le corps à la toast
+    toast.appendChild(toastHeader);
+    toast.appendChild(toastBody);
+
+    // Ajouter la toast au conteneur
+    toastContainer.appendChild(toast);
+
+    // Initialiser et afficher la toast avec Bootstrap
+    const toastBootstrap = new bootstrap.Toast(toast);
+    toastBootstrap.show();
+
+    // Supprimer la toast après sa disparition
+    toast.addEventListener('hidden.bs.toast', () => {
+        toast.remove();
+    });
+}
+
+/* New event listener to capture incoming messages
+chatSocket.addEventListener("message", (event) => {
+  const messageData = JSON.parse(event.data);
+  console.log("Received notification:", messageData.message); // Log the received message to the console
+});*/
+
+
 
 function updateClass(selectElement) {
         // Supprime toutes les classes existantes liées au style du statut

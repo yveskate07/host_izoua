@@ -1,4 +1,6 @@
 import json
+
+from asgiref.sync import async_to_sync
 from django.middleware.csrf import get_token
 from bs4 import BeautifulSoup
 from django.contrib.auth.views import LoginView, LogoutView
@@ -9,6 +11,7 @@ from django.conf import settings
 from accounts.auth_form import UserLoginForm
 from .models import orders, Pizza, Client, DailyInventory, ExtraTopping, PizzaSizePrice, DeliveryPerson, PizzaName
 from datetime import timedelta, datetime, date
+from channels.layers import get_channel_layer
 from django.contrib.auth.decorators import login_required
 import openpyxl
 from django.http import HttpResponse
@@ -24,6 +27,16 @@ parent_dir = os.path.dirname(script_dir)
 
 file_path = os.path.join(script_dir, 'static', 'izouapp', 'data.json')
 
+def send_notifications(msg):
+    print('send_notifications called')
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        "notifications",
+        {
+            "type": "chat_message",
+            "message": msg
+        }
+    )
 
 # Create your views here.
 @login_required
@@ -785,6 +798,7 @@ def add_order(request):
         with open(file_path, 'w') as file:
             json.dump(content, file)
 
+    send_notifications("La commande a été ajouté avec succès")
     return redirect(reverse('home'))
 
 
