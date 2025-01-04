@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from email.policy import default
 
 import django
@@ -15,6 +16,13 @@ def validate_senegal_phone_number(value):
             raise ValueError("Le numéro doit être un numéro valide du Sénégal.")
     except NumberParseException:
         raise ValueError("Numéro de téléphone non valide.")
+
+class Notification(models.Model):
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.message
 
 # Create your models here.
 class DeliveryPerson(models.Model):
@@ -104,6 +112,7 @@ class Pizza(models.Model):
             ('Petite','Petite')]
 
     pizza_id = models.AutoField(primary_key=True)
+    create_at = models.DateField(blank=False, null=False, default=django.utils.timezone.now)
     moitie_1 = models.CharField(max_length=50, null=True, blank=True)
     moitie_2 = models.CharField(max_length=50,  null=True, blank=True)
     status = models.CharField(max_length=50, choices=STATUS, default='Normale') # est une pizza speciale ou pas
@@ -147,6 +156,12 @@ class Pizza(models.Model):
         else:
             return self.moitie_1 + ' - ' + self.moitie_2 + ' Taille ' + self.size
 
+    @property
+    def get_name(self):
+        if self.status == 'Normale':
+            return self.name
+        return self.moitie_1 + ' - ' + self.moitie_2
+
 class Client(models.Model):
     id_client = models.AutoField(primary_key=True)
     name = models.CharField(max_length=50,  blank=False, null=False)
@@ -171,6 +186,9 @@ class Client(models.Model):
 
         return self.name
 
+def get_current_time():
+    return django.utils.timezone.now().time()
+
 class orders(models.Model):
 
     STATUS_CHOICES = [
@@ -184,7 +202,7 @@ class orders(models.Model):
 
     order_id = models.AutoField(primary_key=True)
     deliveryHour = models.TimeField(blank=True, null=True) # champs à renseigner dans le cas d'une commande sur livraison
-    onSiteHour = models.TimeField(blank=False, null=False, default=timezone.now().time())
+    onSiteHour = models.TimeField(blank=False, null=False, default=get_current_time)
     deliveryAdress = models.CharField(max_length=50,  blank=True, null=True) # champs à renseigner dans le cas d'une commande sur livraison
     payment_method_on_site = models.CharField(max_length=50, blank=False, null=False, choices=PAYMENT_METHOD, default='izoua') # champs à renseigner dans le cas d'une commande sur place
     payment_method_order = models.CharField(max_length=50, blank=False, null=False, choices=PAYMENT_METHOD)  # champs à renseigner, moyen de paiement de la livraison
@@ -198,7 +216,7 @@ class orders(models.Model):
     pizzas = models.ManyToManyField(Pizza)
     client = models.ForeignKey(Client, on_delete=models.SET_NULL, null=True)
     deliveryPrice = models.IntegerField(null=True, blank=True, default=0) # champs à renseigner dans le cas d'une commande sur livraison
-
+    notified = models.BooleanField(default=False)
 
     def description(self):
         return f'Base de données contenant les informations des commandes livrées ou annulées. \nedit requested: indique si une modification pour cette commande a été demandée, pour refuser cette modification, decocher cette case.'
@@ -224,6 +242,9 @@ class orders(models.Model):
     def __str__(self):
         return f'Commande No {str(self.order_id)} du {str(self.create_at)}'
 
+    def str_for_alert(self):
+        return f"La commande de M/Mme {self.client} {self.deliveryAdress} est à livrer dans moins de 30 min"
+
     @property
     def get_nb_sold_pizzas_by_sizes(self):
         sold={'Petite':0,'Grande':0}
@@ -234,6 +255,14 @@ class orders(models.Model):
                 sold['Grande'] += 1
 
         return sold
+
+    def is_deadline_close(self):
+
+        now = datetime.now()  # Date et heure actuelles
+        today_delivery_time = datetime.combine(now.date(), self.deliveryHour)  # Combine la date du jour avec l'heure de livraison
+
+        time_difference = today_delivery_time - now  # Calculer la différence
+        return timedelta(0) <= time_difference <= timedelta(minutes=30)
 
 
 class DailyInventory(models.Model):
