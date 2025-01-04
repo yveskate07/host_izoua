@@ -1,3 +1,4 @@
+import calendar
 import json
 
 from asgiref.sync import async_to_sync
@@ -8,6 +9,8 @@ from django.urls import reverse
 from django.utils.timezone import now
 from django.shortcuts import render, redirect
 from django.conf import settings
+from fpdf import FPDF
+
 from accounts.auth_form import UserLoginForm
 from .models import orders, Pizza, Client, DailyInventory, ExtraTopping, PizzaSizePrice, DeliveryPerson, PizzaName
 from datetime import timedelta, datetime, date
@@ -17,7 +20,7 @@ import openpyxl
 from django.http import HttpResponse
 import os
 import locale
-from django.db.models import Sum, F, Q
+from django.db.models import Sum, F, Q, Count
 
 locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
 
@@ -914,7 +917,7 @@ def prepare_datas_to_export():
 def create_excel_with_data(file_name, data):
     if data:
         # Construire le chemin absolu du fichier Excel dans MEDIA_ROOT
-        file_path = os.path.join(settings.MEDIA_ROOT, file_name)
+        file_path = os.path.join(settings.MEDIA_ROOT, 'reports',file_name)
 
         workbook = openpyxl.Workbook()
         # Obtenir la feuille active par défaut
@@ -941,12 +944,288 @@ def create_excel_with_data(file_name, data):
         workbook.save(file_path)
 
 
+def create_pdf_with_data(file_name, data):
+    if data:
+        # Construire le chemin absolu du fichier PDF dans MEDIA_ROOT
+        file_path = os.path.join(settings.MEDIA_ROOT, 'reports',file_name)
+
+        pdf = FPDF()
+        pdf.set_auto_page_break(auto=True, margin=10)
+        pdf.add_page()
+        pdf.set_font("Arial", size=10)
+
+        # Titre du document
+        pdf.set_font("Arial", size=14, style='B')
+        pdf.cell(0, 10, "Recapitulatif des commandes", ln=True, align='C')
+        pdf.ln(10)  # Ajouter un espacement vertical
+
+        # Entêtes du tableau
+        headers = [
+            "Date", "Sur place", "Adresse Livraison", "Heure livraison", "Livreur",
+            "Statut", "Clients", "Mode de paiement commandes", "Mode de paiement livraison", "Infos Pizzas",
+            "Prix Livraison", "Prix Pizzas + Suppléments", "Total"
+        ]
+        pdf.set_font("Arial", size=10, style='B')
+        for header in headers:
+            pdf.cell(40, 10, header, border=1, align='C')
+        pdf.ln()  # Passer à la ligne suivante
+
+        # Insertion des données
+        pdf.set_font("Arial", size=10)
+        for row_data in data:
+            for value in row_data:
+                pdf.cell(40, 10, str(value), border=1, align='C')
+            pdf.ln()  # Passer à la ligne suivante
+
+        # Sauvegarder le fichier PDF
+        pdf.output(file_path)
+
+def get_periodicaly_total_orders() -> dict:
+    today = date.today()
+
+    # Calcul des périodes
+    previous_week_start = today - timedelta(days=today.weekday() + 7)
+    previous_week_end = previous_week_start + timedelta(days=6)
+
+    week_before_start = previous_week_start - timedelta(days=7)
+    week_before_end = week_before_start + timedelta(days=6)
+
+    # Commandes de la semaine dernière
+    previous_week_orders = orders.objects.filter(
+        create_at__gte=previous_week_start, create_at__lte=previous_week_end
+    )
+    previous_week_order_count = previous_week_orders.count()
+
+    # Commandes de la semaine d'avant
+    week_before_orders = orders.objects.filter(
+        create_at__gte=week_before_start, create_at__lte=week_before_end,
+    )
+    week_before_order_count = week_before_orders.count()
+
+    return {'previous_week_order_count':previous_week_order_count,'week_before_order_count':week_before_order_count}
+
+def get_periodicaly_orders_info(filter_conditions=None, period="week") -> dict:
+    today = date.today()
+
+    if period == "week":
+        # Calcul des périodes
+        previous_period_start = today - timedelta(days=today.weekday() + 7)
+        previous_period_end = previous_period_start + timedelta(days=6)
+
+        before_period_start = previous_period_start - timedelta(days=7)
+        before_period_end = before_period_start + timedelta(days=6)
+
+    else:
+        month1 = 12 if today.month - 1 == 0 else today.month - 1 # le mois précedent 1,2,...,12
+        month2 = month1 - 1 # le mois d'avant 1,2,...,12
+        year = today.year-1 if today.month - 1 == 0 else today.year # l'année actuelle
+
+        # Obtenir le premier jour du mois précédent
+        previous_period_start = datetime(year, month1, 1)
+
+        # Obtenir le dernier jour du mois précédent
+        previous_period_end = datetime(year, month1,
+                                           calendar.monthrange(year, month1)[1])
+
+        # Obtenir le premier jour du mois d'avant
+        before_period_start = datetime(year, month2, 1)
+
+        # Obtenir le dernier jour du mois d'avant
+        before_period_end = datetime(year, month2,
+                                           calendar.monthrange(year, month2)[1])
+
+    # Filtre optionnel
+    filter_conditions = filter_conditions or {}
+
+    # Commandes de la semaine dernière
+    previous_week_orders = orders.objects.filter(
+        create_at__gte=previous_period_start, create_at__lte=previous_period_end, **filter_conditions
+    )
+    previous_week_order_count = previous_week_orders.count()
+    previous_week_turnover = previous_week_orders.aggregate(Sum('total_price'))['total_price__sum'] or 0
+
+    # Commandes de la semaine d'avant
+    week_before_orders = orders.objects.filter(
+        create_at__gte=before_period_start, create_at__lte=before_period_end, **filter_conditions
+    )
+    week_before_order_count = week_before_orders.count()
+    week_before_turnover = week_before_orders.aggregate(Sum('total_price'))['total_price__sum'] or 0
+
+    # Calcul des évolutions en pourcentage
+    order_count_evolution = 0
+    turnover_evolution = 0
+
+    if week_before_order_count > 0:
+        order_count_evolution = ((
+                                             previous_week_order_count - week_before_order_count) / week_before_order_count) * 100
+
+    if week_before_turnover > 0:
+        turnover_evolution = ((previous_week_turnover - week_before_turnover) / week_before_turnover) * 100
+
+    # Retour des informations
+    if not filter_conditions:
+
+        weekly_orders_info = {
+            'last_week_order_count': previous_week_order_count,
+            'last_week_turnover': previous_week_turnover,
+            'week_before_order_count': week_before_order_count,
+            'week_before_turnover': week_before_turnover,
+            'order_count_evolution_percentage': order_count_evolution,
+            'turnover_evolution_percentage': turnover_evolution,
+        }
+
+    else:
+        if filter_conditions == {'surplace': True}:
+            weekly_orders_info = {
+                'last_week_order_count': previous_week_order_count,
+                'last_week_turnover': previous_week_turnover,
+                'week_before_order_count': week_before_order_count,
+                'week_before_turnover': week_before_turnover,
+                'order_count_evolution_percentage': order_count_evolution,
+                'turnover_evolution_percentage': turnover_evolution,
+                'last_week_on_site_out_of_total': (previous_week_order_count / get_periodicaly_total_orders()[
+                    'previous_week_order_count']) * 100,
+                'week_before_on_site_out_of_total': (week_before_order_count / get_periodicaly_total_orders()[
+                    'previous_week_order_count']) * 100,
+            }
+        else:
+
+            weekly_orders_info = {
+                'last_week_order_count': previous_week_order_count,
+                'last_week_turnover': previous_week_turnover,
+                'week_before_order_count': week_before_order_count,
+                'week_before_turnover': week_before_turnover,
+                'order_count_evolution_percentage': order_count_evolution,
+                'turnover_evolution_percentage': turnover_evolution,
+                'last_week_delivery_out_of_total': (previous_week_order_count / get_periodicaly_total_orders()[
+                    'previous_week_order_count']) * 100,
+                'week_before_delivery_out_of_total': (week_before_order_count / get_periodicaly_total_orders()[
+                    'previous_week_order_count']) * 100,
+            }
+
+    return weekly_orders_info
+
+def get_periodicaly_delivery_infos(request):
+    # Nombre total de livraisons effectuées
+    total_delivery = {'last_week_order_count':get_periodicaly_orders_info(filter_conditions={'surplace': False})['last_week_order_count'], # la semaine passée
+                      'week_before_order_count':get_periodicaly_orders_info(filter_conditions={'surplace': False})['week_before_order_count']} # la semaine d'avant
+
+    today = date.today()
+    delivery_men_infos = []
+
+    # Calcul des périodes
+    previous_week_start = today - timedelta(days=today.weekday() + 7)
+    previous_week_end = previous_week_start + timedelta(days=6)
+
+    week_before_start = previous_week_start - timedelta(days=7)
+    week_before_end = week_before_start + timedelta(days=6)
+
+    delivery_men = DeliveryPerson.objects.all()
+
+    if delivery_men:
+        for deliMan in delivery_men: # pour chaque livreur enregistré
+            # Commandes de la semaine dernière
+            previous_week_orders = orders.objects.filter(
+                create_at__gte=previous_week_start, create_at__lte=previous_week_end,
+                deliveryPerson_id=deliMan.id_deliveryman, status='delivered'
+            )
+
+            # Commandes de la semaine d'avant
+            week_before_orders = orders.objects.filter(
+                create_at__gte=week_before_start, create_at__lte=week_before_end,
+                deliveryPerson_id=deliMan.id_deliveryman, status='delivered'
+            )
+            numb_delivery1 = len(previous_week_orders)
+            total_pizzas1 = sum([order.pizza_and_extratopping_price for order in previous_week_orders if order.payment_method_order == 'delivered_man'])
+            total_delivery1 = previous_week_orders.aggregate(
+                total_delivery=Sum('deliveryPrice', filter=Q(deliveryPrice__isnull=False) & Q(payment_method_delivery='delivered_man'))
+            )['total_delivery'] or 0
+
+            numb_delivery2 = len(week_before_orders)
+            total_pizzas2 = sum([order.pizza_and_extratopping_price for order in week_before_orders if
+                                 order.payment_method_order == 'delivered_man'])
+            total_delivery2 = week_before_orders.aggregate(total_delivery=Sum('deliveryPrice',filter=Q(deliveryPrice__isnull=False) & Q(payment_method_delivery='delivered_man'))
+            )['total_delivery'] or 0
+
+            delivDict = {'previous_week':{'name': deliMan.name, 'TotalPizzasSold': total_pizzas1, 'TotalDeliv': total_delivery1,
+                          'Percent': 0.2 * total_delivery1, 'numb_delivery': numb_delivery1},
+                         'week_before': {'name': deliMan.name, 'TotalPizzasSold': total_pizzas2,'TotalDeliv': total_delivery2,
+                                           'Percent': 0.2 * total_delivery2, 'numb_delivery': numb_delivery2}
+                         }
+            delivery_men_infos.append(delivDict)
+
+    return delivery_men_infos
+
+def get_most_and_least_sold_pizza_names(period):
+    today = date.today()
+
+    if period == "week":
+        # Calcul des périodes
+        previous_period_start = today - timedelta(days=today.weekday() + 7)
+        previous_period_end = previous_period_start + timedelta(days=6)
+
+        before_period_start = previous_period_start - timedelta(days=7)
+        before_period_end = before_period_start + timedelta(days=6)
+
+    else:
+        month1 = 12 if today.month - 1 == 0 else today.month - 1  # le mois précedent 1,2,...,12
+        month2 = month1 - 1  # le mois d'avant 1,2,...,12
+        year = today.year - 1 if today.month - 1 == 0 else today.year  # l'année actuelle
+
+        # Obtenir le premier jour du mois précédent
+        previous_period_start = datetime(year, month1, 1)
+
+        # Obtenir le dernier jour du mois précédent
+        previous_period_end = datetime(year, month1,
+                                       calendar.monthrange(year, month1)[1])
+
+        # Obtenir le premier jour du mois d'avant
+        before_period_start = datetime(year, month2, 1)
+
+        # Obtenir le dernier jour du mois d'avant
+        before_period_end = datetime(year, month2,
+                                     calendar.monthrange(year, month2)[1])
+
+
+    # Ventes de pizzas de la semaine dernière
+    previous_week_sales = Pizza.objects.filter(
+        create_at__gte=previous_period_start, create_at__lte=previous_period_end
+    ).values('name').annotate(sales_count=Count('name'))
+
+    previous_week_list = {sale['name']: sale['sales_count'] for sale in previous_week_sales}
+
+    # Ventes de pizzas de la semaine d'avant
+    week_before_sales = Pizza.objects.filter(
+        create_at__gte=before_period_start, create_at__lte=before_period_end
+    ).values('name').annotate(sales_count=Count('name'))
+
+    week_before_list = {sale['name']: sale['sales_count'] for sale in week_before_sales}
+
+    # Retourner les résultats
+    return {
+        'previous_week': previous_week_list,
+        'before_week': week_before_list
+    }
+
+def get_periodicaly_orders_by_type(period):
+    # Commandes sur place
+    on_site_info = get_periodicaly_orders_info(filter_conditions={'surplace': True}, period=period)
+
+    # Commandes livrées
+    delivery_info = get_periodicaly_orders_info(filter_conditions={'surplace': False}, period=period)
+
+    return {
+        'on_site_orders_info': on_site_info,
+        'delivery_orders_info': delivery_info
+    }
+
+
 @login_required
 def download_excel(request):
     create_excel_with_data('izoua.xlsx', prepare_datas_to_export())
 
     # Chemin absolu du fichier Excel généré
-    file_path = os.path.join(settings.MEDIA_ROOT, 'izoua.xlsx')
+    file_path = os.path.join(settings.MEDIA_ROOT, 'reports', 'izoua.xlsx')
 
     # Vérifier si le fichier existe
     if not os.path.exists(file_path):

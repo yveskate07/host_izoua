@@ -1337,7 +1337,7 @@ function createToast(msg) {
     toastContainer.appendChild(toast);
 
     // Initialiser et afficher la toast avec Bootstrap
-    const toastBootstrap = new bootstrap.Toast(toast);
+    const toastBootstrap = new bootstrap.Toast(toast, { delay: 7000 });
     toastBootstrap.show();
 
     // Supprimer la toast après sa disparition

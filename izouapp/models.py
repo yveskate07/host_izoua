@@ -112,6 +112,7 @@ class Pizza(models.Model):
             ('Petite','Petite')]
 
     pizza_id = models.AutoField(primary_key=True)
+    create_at = models.DateField(blank=False, null=False, default=django.utils.timezone.now)
     moitie_1 = models.CharField(max_length=50, null=True, blank=True)
     moitie_2 = models.CharField(max_length=50,  null=True, blank=True)
     status = models.CharField(max_length=50, choices=STATUS, default='Normale') # est une pizza speciale ou pas
@@ -154,6 +155,12 @@ class Pizza(models.Model):
             return self.name + ' Taille ' + self.size
         else:
             return self.moitie_1 + ' - ' + self.moitie_2 + ' Taille ' + self.size
+
+    @property
+    def get_name(self):
+        if self.status == 'Normale':
+            return self.name
+        return self.moitie_1 + ' - ' + self.moitie_2
 
 class Client(models.Model):
     id_client = models.AutoField(primary_key=True)
