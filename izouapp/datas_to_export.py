@@ -1,12 +1,18 @@
 import calendar
 import os
 from datetime import date, timedelta, datetime
+import numpy as np
+import openpyxl
+import pandas as pd
 from django.db.models import Sum, Q
 from fpdf import FPDF
 from izouapp.models import orders, DeliveryPerson, Pizza
 from izouaproject import settings
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+
+
+img_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'izouapp', 'images','img_gen_from_charts')# chemin où seront stocké les fichiers img
 
 
 def prepare_datas_to_export():
@@ -64,8 +70,6 @@ def get_periodicaly_total_orders() -> dict:
 
 def get_periodicaly_orders_info(filter_conditions=None, period="week") -> dict|bool:
     today = date.today()
-
-    print('period choisie: ', period)
 
     if period == "week":
         # Calcul des périodes
@@ -312,9 +316,7 @@ def get_most_and_least_sold_pizza_names(period) -> dict:
         before_period_end = datetime(year, month2,calendar.monthrange(year, month2)[1])
 
     # Ventes de pizzas de la periode dernière
-    previous_period_pizzas = Pizza.objects.filter(
-        create_at__gte=previous_period_start, create_at__lte=previous_period_end
-    )
+    previous_period_pizzas = Pizza.objects.filter(create_at__gte=previous_period_start, create_at__lte=previous_period_end)
 
     if len(previous_period_pizzas)==0:
         previous_period_list = None
@@ -418,39 +420,255 @@ def create_pdf_with_data(): # note: je dois ajouter un tableau en dessous qui re
         return  parent_path, file_path
 
 
-def create_pdf_with_images(image_paths:list, titles:list, output_file:str):
-    """
-    Crée un fichier PDF contenant 6 images disposées en 3 lignes avec des titres.
+def plot_empty_polar(file_name, fig,ax):
+    # Listes vides
+    categories = []
+    values = []
 
-    :param image_paths: Liste de 6 chemins vers les images à insérer.
-    :param titles: Liste de 3 titres correspondant à chaque ligne d'images.
-    :param output_file: Nom du fichier PDF de sortie.
-    """
-    if len(image_paths) != 6:
-        raise ValueError("Vous devez fournir exactement 6 chemins d'images.")
-    if len(titles) != 3:
-        raise ValueError("Vous devez fournir exactement 3 titres.")
+    # Création de l'axe polaire
+    fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
 
-    file_path = os.path.join(settings.MEDIA_ROOT, 'reports', output_file)
+    # Tentative de traçage
+    try:
+        angles = np.linspace(0, 2 * np.pi, len(categories), endpoint=False).tolist()
+        values += values[:1]  # Répéter la première valeur pour fermer le graphique
+        angles += angles[:1]
+        ax.fill(angles, values, color='blue', alpha=0.25)
+        ax.plot(angles, values, color='blue', linewidth=2)
+        ax.set_xticks(angles[:-1])
+        ax.set_xticklabels(categories)
+        ax.set_title('Aucune vente enregistrée', fontsize=14)
 
-    with PdfPages(file_path) as pdf:
-        fig, axes = plt.subplots(3, 2, figsize=(8.5, 11))  # Taille standard pour un PDF A4
-        fig.subplots_adjust(hspace=0.5)  # Espacement vertical
 
-        for row in range(3):
-            # Ajouter un titre au-dessus de chaque ligne
-            fig.text(0.5, 0.94 - row * 0.3, titles[row], ha='center', fontsize=14, fontweight='bold')
+    except Exception as e:
+        print(f"Erreur : {e}")
 
-            for col in range(2):
-                idx = row * 2 + col
-                ax = axes[row, col]
-                ax.axis('off')  # Désactiver les axes
+    finally:
+        plt.savefig(os.path.join(img_path, file_name), dpi=300, bbox_inches="tight")
+        return os.path.join(img_path, file_name)
 
-                # Charger et afficher l'image
-                img = plt.imread(image_paths[idx])
-                ax.imshow(img)
 
+
+def generate_2x_polar(datalist, filename='Total pizzas vendues.pdf'):
+
+
+    data1 = datalist[0]
+    data2 = datalist[1]
+
+
+    # Créer une figure avec deux sous-graphiques polaires côte à côte
+    fig, axes = plt.subplots(1, 2, figsize=(12, 6), subplot_kw={'projection': 'polar'})
+
+    if not data1 and not data2:
+        categories = []
+        values = []
+        try:
+            ax1 = axes[0]
+            angles = np.linspace(0, 2 * np.pi, len(categories), endpoint=False).tolist()
+            values += values[:1]  # Répéter la première valeur pour fermer le graphique
+            angles += angles[:1]
+            ax1.fill(angles, values, color='blue', alpha=0.25)
+            ax1.plot(angles, values, color='blue', linewidth=2)
+            ax1.set_xticks(angles[:-1])
+            ax1.set_xticklabels(categories)
+            ax1.set_title("Aucune vente enregistrée pour la période précédente", fontsize=14)
+
+            ax2 = axes[1]
+            angles = np.linspace(0, 2 * np.pi, len(categories), endpoint=False).tolist()
+            values += values[:1]  # Répéter la première valeur pour fermer le graphique
+            angles += angles[:1]
+            ax2.fill(angles, values, color='blue', alpha=0.25)
+            ax2.plot(angles, values, color='blue', linewidth=2)
+            ax2.set_xticks(angles[:-1])
+            ax2.set_xticklabels(categories)
+            ax2.set_title("Aucune vente enregistrée pour la période d'avant", fontsize=14)
+
+
+        except Exception as e:
+            print(f"Erreur : {e}")
+
+        finally:
+            # Ajuster l'espacement
+            plt.tight_layout()
+
+            # Sauvegarde dans un fichier PDF
+            plt.savefig(os.path.join(img_path, filename), dpi=300, bbox_inches="tight")
+
+            return os.path.join(img_path, filename)
+
+    elif not data1:
+        categories = []
+        values = []
+        try:
+            ax1 = axes[0]
+            angles = np.linspace(0, 2 * np.pi, len(categories), endpoint=False).tolist()
+            values += values[:1]  # Répéter la première valeur pour fermer le graphique
+            angles += angles[:1]
+            ax1.fill(angles, values, color='blue', alpha=0.25)
+            ax1.plot(angles, values, color='blue', linewidth=2)
+            ax1.set_xticks(angles[:-1])
+            ax1.set_xticklabels(categories)
+            ax1.set_title("Aucune vente enregistrée pour la période précédente", fontsize=14)
+
+            # Deuxième graphique polaire
+            ax2 = axes[1]
+            theta2 = np.linspace(0, 2 * np.pi, len(data2[0]), endpoint=False)
+            ax2.set_theta_offset(np.pi / 2)  # Début du graphique à la verticale
+            ax2.set_theta_direction(-1)  # Sens des aiguilles d'une montre
+            ax2.bar(theta2, data2[1], width=0.3, bottom=0.0, color='tomato', alpha=0.6)
+            ax2.set_xticks(theta2)
+            ax2.set_xticklabels(data2[0], fontsize=12)
+            ax2.set_title(data2[2], fontsize=14)
+
+        except Exception as e:
+            print(f"Erreur : {e}")
+
+        finally:
+            # Ajuster l'espacement
+            plt.tight_layout()
+
+            # Sauvegarde dans un fichier PDF
+            plt.savefig(os.path.join(img_path, filename), dpi=300, bbox_inches="tight")
+
+            return os.path.join(img_path, filename)
+
+    elif not data2:
+        categories = []
+        values = []
+
+        try:
+            ax1 = axes[0]
+            theta1 = np.linspace(0, 2 * np.pi, len(data1[0]), endpoint=False)
+            ax1.set_theta_offset(np.pi / 2)  # Début du graphique à la verticale
+            ax1.set_theta_direction(-1)  # Sens des aiguilles d'une montre
+            ax1.bar(theta1, data1[1], width=0.3, bottom=0.0, color='cornflowerblue', alpha=0.6)
+            ax1.set_xticks(theta1)
+            ax1.set_xticklabels(data1[0], fontsize=12)
+            ax1.set_title(data1[2], fontsize=14)
+
+            ax2 = axes[1]
+            angles = np.linspace(0, 2 * np.pi, len(categories), endpoint=False).tolist()
+            values += values[:1]  # Répéter la première valeur pour fermer le graphique
+            angles += angles[:1]
+            ax2.fill(angles, values, color='blue', alpha=0.25)
+            ax2.plot(angles, values, color='blue', linewidth=2)
+            ax2.set_xticks(angles[:-1])
+            ax2.set_xticklabels(categories)
+            ax2.set_title("Aucune vente enregistrée pour la période d'avant", fontsize=14)
+
+        except Exception as e:
+            print(f"Erreur : {e}")
+
+        finally:
+            # Ajuster l'espacement
+            plt.tight_layout()
+
+            # Sauvegarde dans un fichier PDF
+            plt.savefig(os.path.join(img_path, filename), dpi=300, bbox_inches="tight")
+
+            return os.path.join(img_path, filename)
+
+    else:
+        # Premier graphique polaire
+        ax1 = axes[0]
+        theta1 = np.linspace(0, 2 * np.pi, len(data1[0]), endpoint=False)
+        ax1.set_theta_offset(np.pi / 2)  # Début du graphique à la verticale
+        ax1.set_theta_direction(-1)  # Sens des aiguilles d'une montre
+        ax1.bar(theta1, data1[1], width=0.3, bottom=0.0, color='cornflowerblue', alpha=0.6)
+        ax1.set_xticks(theta1)
+        ax1.set_xticklabels(data1[0], fontsize=12)
+        ax1.set_title(data1[2], fontsize=14)
+
+        # Deuxième graphique polaire
+        ax2 = axes[1]
+        theta2 = np.linspace(0, 2 * np.pi, len(data2[0]), endpoint=False)
+        ax2.set_theta_offset(np.pi / 2)  # Début du graphique à la verticale
+        ax2.set_theta_direction(-1)  # Sens des aiguilles d'une montre
+        ax2.bar(theta2, data2[1], width=0.3, bottom=0.0, color='tomato', alpha=0.6)
+        ax2.set_xticks(theta2)
+        ax2.set_xticklabels(data2[0], fontsize=12)
+        ax2.set_title(data2[2], fontsize=14)
+
+        # Ajuster l'espacement
+        plt.tight_layout()
+
+        # Sauvegarde dans un fichier PDF
+        plt.savefig(os.path.join(img_path,filename), dpi=300, bbox_inches="tight")
+
+        return os.path.join(img_path,filename)
+
+
+def generate_4x_charts(datasets, file_name="total commandes et chiffres d'affaire.pdf"):
+
+    # Configuration de la grille
+    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+    axes = axes.flatten()
+
+    for i, data in enumerate(datasets):
+        df = pd.DataFrame(data[0])
+
+        # Position des barres pour chaque jeu de données
+        x = np.arange(len(df))  # Position des catégories
+        width = 0.35  # Largeur des barres
+
+        # Barplot avec deux jeux de données côte à côte
+        axes[i].bar(x - width / 2, df["dataset1"], width, label=data[3], color="cornflowerblue")
+        axes[i].bar(x + width / 2, df["dataset2"], width, label=data[4], color="tomato")
+
+        axes[i].set_title(data[5], fontsize=14)
+        if data[1]:
+            axes[i].set_xlabel(data[1], fontsize=12)
+        axes[i].set_ylabel(data[2], fontsize=12)
+        axes[i].set_xticks(x)
+        axes[i].set_xticklabels(df["Catégorie"], fontsize=12)
+        axes[i].legend()
+
+        axes[i].set_ylim(0, max(df["dataset1"].max(), df["dataset2"].max()) + 5)
+
+        # Ajouter des annotations de valeur sur les barres
+        for j, val in enumerate(df["dataset1"]):
+            axes[i].text(x[j] - width / 2, val + 0.5, f"{val}", ha="center", fontsize=10)
+        for j, val in enumerate(df["dataset2"]):
+            axes[i].text(x[j] + width / 2, val + 0.5, f"{val}", ha="center", fontsize=10)
+
+    # Ajuster l'espacement
+    plt.tight_layout()
+
+    # Sauvegarde dans un fichier PDF
+    with PdfPages(os.path.join(img_path,file_name)) as pdf:
         pdf.savefig(fig)
-        plt.close(fig)
 
-    return file_path
+    return os.path.join(img_path,file_name)
+
+
+def create_excel_with_data(file_name):
+    data = prepare_datas_to_export()
+    if data:
+        # Construire le chemin absolu du fichier Excel dans MEDIA_ROOT
+        file_path = os.path.join(settings.MEDIA_ROOT, 'reports',file_name)
+
+        workbook = openpyxl.Workbook()
+        # Obtenir la feuille active par défaut
+        sheet = workbook.active
+
+        sheet.title = "Recapitulatif des commandes"
+
+        headers = [
+            "Date", "Sur place", "Adresse Livraison", "Heure livraison", "Livreur",
+            "Statut", "Clients", "Mode de paiement commandes", "Mode de paiement livraison", "Infos Pizzas",
+            "Prix Livraison", "Prix Pizzas + Suppléments", "Total"
+        ]
+
+        for col_num, header in enumerate(headers, start=1):
+            sheet.cell(row=1, column=col_num, value=header)
+
+        # Insérer les données (à partir de la ligne 2)
+        start_row = 2
+        for row_num, row_data in enumerate(data, start=start_row):
+            for col_num, value in enumerate(row_data, start=1):
+                sheet.cell(row=row_num, column=col_num, value=value)
+
+        # Sauvegarder le fichier Excel
+        workbook.save(file_path)
+
+        return file_path

@@ -7,8 +7,6 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 import asyncio
 import json
 
-from accounts.models import Manager_or_Admin
-from izouapp.mail_sender import send_period_digest
 from izouapp.models import orders
 
 

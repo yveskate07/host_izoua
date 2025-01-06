@@ -1,4 +1,5 @@
 import json
+import traceback
 
 from asgiref.sync import async_to_sync
 from django.middleware.csrf import get_token
@@ -11,8 +12,8 @@ from django.conf import settings
 
 from accounts.auth_form import UserLoginForm
 from accounts.models import Manager_or_Admin
-from .datas_to_export import prepare_datas_to_export
-from .mail_sender import send_period_digest
+from .datas_to_export import prepare_datas_to_export, create_excel_with_data, get_most_and_least_sold_pizza_names
+from .mail_sender import send_period_digest, get_chart_imgs_datas
 from .models import orders, Pizza, Client, DailyInventory, ExtraTopping, PizzaSizePrice, DeliveryPerson, PizzaName, \
     SendMailReminder
 from datetime import timedelta, datetime, date
@@ -497,47 +498,58 @@ def edit_order(request):  # modifie simplement le dictionnaire data.json et la c
 
     return redirect(reverse('home'))
 
-@login_required
+
 def send_email():
+
+    get_most_and_least_sold_pizza_names("week")
+    get_chart_imgs_datas("week")
     today = datetime.now()
     reminder = SendMailReminder.objects.all()
 
-    if not reminder:
+    if len(reminder)==0:
         reminder_first = SendMailReminder.objects.create(weekly_digest_sent=False,monthly_digest_sent=False)
     else:
         reminder_first = reminder.first()
 
 
     if today.weekday() == 0 and not reminder_first.weekly_digest_sent:  # un Lundi
+        print("Envoie d'un mail pour la periode: week")
         superusers = Manager_or_Admin.objects.filter(is_superuser=True)
-        for user in superusers:
-            if user.email:
-                try:
+        user = None
+        try:
+            for user in superusers:
+                if user.email:
                     send_period_digest(period="week", to_email=user.email, subject="Votre digest hebdomadaire.")
-                except Exception as e:
-                    print(f"Erreur lors de l'envoi de l'email à {user.email} : {e}")
-                finally:
-                    reminder_first.weekly_digest_sent = True
+        except Exception as e:
+            print(f"Erreur lors de l'envoi de l'email à {user.email} : {e}")
+            traceback.print_exc()
+        finally:
+            reminder_first.weekly_digest_sent = True
+            reminder_first.save()
 
     elif today.day == 1 and not reminder_first.monthly_digest_sent:  # Premier jour du mois
+        print("Envoie d'un mail pour la periode: month")
         superusers = Manager_or_Admin.objects.filter(is_superuser=True)
-        for user in superusers:
-            if user.email:
-                try:
-                    send_period_digest(period="week", to_email=user.email, subject="Votre digest mensuel.")
-                except Exception as e:
-                    print(f"Erreur lors de l'envoi de l'email à {user.email} : {e}")
-                finally:
-                    reminder_first.monthly_digest_sent = True
+        user = None
+        try:
+            for user in superusers:
+                if user.email:
+                    send_period_digest(period="month", to_email=user.email, subject="Votre digest mensuel.")
+        except Exception as e:
+            print(f"Erreur lors de l'envoi de l'email à {user.email} : {e}")
+        finally:
+            reminder_first.monthly_digest_sent = True
+            reminder_first.save()
 
     else:
         reminder_first.weekly_digest_sent = False
         reminder_first.monthly_digest_sent = False
+        reminder_first.save()
 
 
 @login_required
 def home(request):  # quand l'utilisateur atterit sur la page pour la premiere fois
-    #return HttpResponse(html_content)
+    send_email()
     datas_to_json(request)
 
     return fetching_datas(request, filter_=None, date_to_print=now().date().isoformat())
@@ -934,39 +946,9 @@ def datas_to_json(request):  # à revoir au cas où les requetes renvoient des t
         json.dump(content, file)
 
 
-def create_excel_with_data(file_name, data):
-    if data:
-        # Construire le chemin absolu du fichier Excel dans MEDIA_ROOT
-        file_path = os.path.join(settings.MEDIA_ROOT, 'reports',file_name)
-
-        workbook = openpyxl.Workbook()
-        # Obtenir la feuille active par défaut
-        sheet = workbook.active
-
-        sheet.title = "Recapitulatif des commandes"
-
-        headers = [
-            "Date", "Sur place", "Adresse Livraison", "Heure livraison", "Livreur",
-            "Statut", "Clients", "Mode de paiement commandes", "Mode de paiement livraison", "Infos Pizzas",
-            "Prix Livraison", "Prix Pizzas + Suppléments", "Total"
-        ]
-
-        for col_num, header in enumerate(headers, start=1):
-            sheet.cell(row=1, column=col_num, value=header)
-
-        # Insérer les données (à partir de la ligne 2)
-        start_row = 2
-        for row_num, row_data in enumerate(data, start=start_row):
-            for col_num, value in enumerate(row_data, start=1):
-                sheet.cell(row=row_num, column=col_num, value=value)
-
-        # Sauvegarder le fichier Excel
-        workbook.save(file_path)
-
-
 @login_required
 def download_excel(request):
-    create_excel_with_data('izoua.xlsx', prepare_datas_to_export())
+    create_excel_with_data('izoua.xlsx')
 
     # Chemin absolu du fichier Excel généré
     file_path = os.path.join(settings.MEDIA_ROOT, 'reports', 'izoua.xlsx')
