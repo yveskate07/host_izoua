@@ -5,7 +5,7 @@ import numpy as np
 import openpyxl
 import pandas as pd
 from django.db.models import Sum, Q
-from fpdf import FPDF
+#from fpdf import FPDF
 from izouapp.models import orders, DeliveryPerson, Pizza
 from izouaproject import settings
 import matplotlib.pyplot as plt
@@ -350,7 +350,7 @@ def get_most_and_least_sold_pizza_names(period) -> dict:
     }
 
 
-def create_pdf_with_data(): # note: je dois ajouter un tableau en dessous qui resumme aussi les infos des livreurs
+"""def create_pdf_with_data(): # note: je dois ajouter un tableau en dessous qui resumme aussi les infos des livreurs
     second_table_data = get_periodicaly_delivery_infos()
     file_name = 'file.pdf'
     data = prepare_datas_to_export()
@@ -417,7 +417,7 @@ def create_pdf_with_data(): # note: je dois ajouter un tableau en dessous qui re
         # Sauvegarder le fichier PDF
         pdf.output(file_path)
 
-        return  parent_path, file_path
+        return  parent_path, file_path"""
 
 
 def plot_empty_polar(file_name, fig,ax):
