@@ -3,18 +3,7 @@ from datetime import datetime, timedelta
 import django
 from asgiref.sync import sync_to_async
 from django.db import models
-from phonenumbers import parse, is_valid_number, NumberParseException
 from django.utils import timezone
-
-def validate_senegal_phone_number(value):
-    try:
-        # Parse the number with the Senegal country code (+221)
-        parsed_number = parse(value, "SN")
-        # Vérifier si le numéro est valide et appartient au Sénégal
-        if not (is_valid_number(parsed_number) and parsed_number.country_code == 221):
-            raise ValueError("Le numéro doit être un numéro valide du Sénégal.")
-    except NumberParseException:
-        raise ValueError("Numéro de téléphone non valide.")
 
 
 class SendMailReminder(models.Model):
@@ -25,7 +14,6 @@ class SendMailReminder(models.Model):
 class DeliveryPerson(models.Model):
     id_deliveryman = models.AutoField(primary_key=True)
     name = models.CharField(max_length=50, blank=False, null=False)
-    #phone_number = PhoneNumberField(validators=[validate_senegal_phone_number],blank=True, null=True)
     phone_number = models.CharField(max_length=20,blank=True, null=True, default='')
     email = models.EmailField(blank=True,null=True)
     add_at = models.DateField(max_length=50,  blank=False, null=False, default=django.utils.timezone.now) # quand il a debuté
