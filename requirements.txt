@@ -15,12 +15,9 @@ cssselect2==0.7.0
 cycler==0.12.1
 daphne==4.1.2
 Django==5.1.4
-django-livereload-server==0.5.1
-django-phonenumber-field==8.0.0
 environ==1.0
 et_xmlfile==2.0.0
 fonttools==4.55.3
-fpdf==1.7.2
 h11==0.14.0
 hyperlink==21.0.0
 idna==3.10
@@ -32,7 +29,6 @@ numpy==2.2.1
 openpyxl==3.1.5
 packaging==24.2
 pandas==2.2.3
-phonenumbers==8.13.51
 pillow==11.1.0
 pyasn1==0.6.1
 pyasn1_modules==0.4.1
@@ -57,7 +53,6 @@ Twisted==24.11.0
 txaio==23.1.1
 typing_extensions==4.12.2
 tzdata==2024.2
-uvicorn==0.34.0
 webencodings==0.5.1
 zope.interface==7.2
 zopfli==0.2.3.post1
