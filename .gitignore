@@ -1,5 +1,6 @@
 .idea/
 .env/
 izouaproject/.env
+izouapp/.env
 __pycache__
 db.sqlite3
