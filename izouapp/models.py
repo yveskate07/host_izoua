@@ -1,10 +1,8 @@
 from datetime import datetime, timedelta
-from email.policy import default
 
 import django
 from asgiref.sync import sync_to_async
 from django.db import models
-from phonenumber_field.modelfields import PhoneNumberField
 from phonenumbers import parse, is_valid_number, NumberParseException
 from django.utils import timezone
 
@@ -18,12 +16,10 @@ def validate_senegal_phone_number(value):
     except NumberParseException:
         raise ValueError("Numéro de téléphone non valide.")
 
-class Notification(models.Model):
-    message = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
-        return self.message
+class SendMailReminder(models.Model):
+    weekly_digest_sent = models.BooleanField(default=False)
+    monthly_digest_sent = models.BooleanField(default=False)
 
 # Create your models here.
 class DeliveryPerson(models.Model):

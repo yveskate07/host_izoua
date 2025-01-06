@@ -7,7 +7,7 @@ import numpy as np
 
 img_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'izouapp', 'images','img_gen_from_charts')# chemin où seront stocké les fichiers img
 
-def generate_barplots(file_name, ylab, legend, title=None, xlab=None, data = None, cat=None):
+def generate_barplots(file_name, ylab, data, legend, title, xlab=None, cat=None):
     # Création des datasets
     """data = {
         "Catégorie": ["A", "B", "C", "D"],
@@ -38,7 +38,7 @@ def generate_barplots(file_name, ylab, legend, title=None, xlab=None, data = Non
         )
 
     # Ajout de titres et labels
-    #plt.title(title, fontsize=16)
+    plt.title(title, fontsize=16)
     if xlab:
         plt.xlabel(xlab, fontsize=15)
     else:
@@ -53,7 +53,7 @@ def generate_barplots(file_name, ylab, legend, title=None, xlab=None, data = Non
     return file_name
 
 
-def generate_polarArea(file_name, categories, values, title=None):
+def generate_polarArea(file_name, categories, values, title):
 
     if not values:
         return None
@@ -92,7 +92,7 @@ def generate_polarArea(file_name, categories, values, title=None):
         )
 
     # Titre
-    #plt.title(title, fontsize=16, pad=20)
+    plt.title(title, fontsize=16, pad=20)
 
     # Sauvegarde
     plt.savefig(os.path.join(img_path,file_name), dpi=300, bbox_inches="tight")

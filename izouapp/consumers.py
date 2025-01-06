@@ -65,33 +65,16 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         count = 0
         while True:
             try:
-                today = datetime.now()
-                if today.weekday() == 0:  # Lundi
-                    await self.send_digest_emails(period="week", subject="Votre digest hebdomadaire.")
-                elif today.day == 1:  # Premier jour du mois
-                    await self.send_digest_emails(period="month", subject="Votre digest mensuel.")
-
                 # Vérification des commandes en attente
                 await self.check_pending_orders()
 
             except Exception as e:
                 # Loggez l'erreur pour le débogage
                 print(f"*************************** Erreur dans send_messages : {e} *************************** ")
-                traceback.print_exc()  # affichage des infos complète de 'exception
+                #traceback.print_exc()  # affichage des infos complète de 'exception
             finally:
                 # Pause entre les exécutions
                 await asyncio.sleep(5)
-
-    async def send_digest_emails(self, period, subject):
-        """Envoie des emails digest aux superusers."""
-        superusers = await sync_to_async(list)(Manager_or_Admin.objects.filter(is_superuser=True))
-        for user in superusers:
-            if user.email:
-                try:
-                    print("ici on essaie d'envoyer un mail")
-                    send_period_digest(period=period, to_email=user.email, subject=subject)
-                except Exception as e:
-                    print(f"Erreur lors de l'envoi de l'email à {user.email} : {e}")
 
     async def check_pending_orders(self):
         pending_orders = await sync_to_async(list)(orders.objects.filter(status='pending', create_at=django.utils.timezone.now().date(), notified=False))

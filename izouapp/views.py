@@ -8,11 +8,13 @@ from django.urls import reverse
 from django.utils.timezone import now
 from django.shortcuts import render, redirect
 from django.conf import settings
-from fpdf import FPDF
 
 from accounts.auth_form import UserLoginForm
-from .mail_sender import set_html_content, get_periodicaly_orders_info
-from .models import orders, Pizza, Client, DailyInventory, ExtraTopping, PizzaSizePrice, DeliveryPerson, PizzaName
+from accounts.models import Manager_or_Admin
+from .datas_to_export import prepare_datas_to_export
+from .mail_sender import send_period_digest
+from .models import orders, Pizza, Client, DailyInventory, ExtraTopping, PizzaSizePrice, DeliveryPerson, PizzaName, \
+    SendMailReminder
 from datetime import timedelta, datetime, date
 from channels.layers import get_channel_layer
 from django.contrib.auth.decorators import login_required
@@ -495,12 +497,47 @@ def edit_order(request):  # modifie simplement le dictionnaire data.json et la c
 
     return redirect(reverse('home'))
 
+@login_required
+def send_email():
+    today = datetime.now()
+    reminder = SendMailReminder.objects.all()
+
+    if not reminder:
+        reminder_first = SendMailReminder.objects.create(weekly_digest_sent=False,monthly_digest_sent=False)
+    else:
+        reminder_first = reminder.first()
+
+
+    if today.weekday() == 0 and not reminder_first.weekly_digest_sent:  # un Lundi
+        superusers = Manager_or_Admin.objects.filter(is_superuser=True)
+        for user in superusers:
+            if user.email:
+                try:
+                    send_period_digest(period="week", to_email=user.email, subject="Votre digest hebdomadaire.")
+                except Exception as e:
+                    print(f"Erreur lors de l'envoi de l'email à {user.email} : {e}")
+                finally:
+                    reminder_first.weekly_digest_sent = True
+
+    elif today.day == 1 and not reminder_first.monthly_digest_sent:  # Premier jour du mois
+        superusers = Manager_or_Admin.objects.filter(is_superuser=True)
+        for user in superusers:
+            if user.email:
+                try:
+                    send_period_digest(period="week", to_email=user.email, subject="Votre digest mensuel.")
+                except Exception as e:
+                    print(f"Erreur lors de l'envoi de l'email à {user.email} : {e}")
+                finally:
+                    reminder_first.monthly_digest_sent = True
+
+    else:
+        reminder_first.weekly_digest_sent = False
+        reminder_first.monthly_digest_sent = False
+
 
 @login_required
 def home(request):  # quand l'utilisateur atterit sur la page pour la premiere fois
-
-    html_content = set_html_content("month")
-    return HttpResponse(html_content)
+    #return HttpResponse(html_content)
     datas_to_json(request)
 
     return fetching_datas(request, filter_=None, date_to_print=now().date().isoformat())
@@ -897,34 +934,6 @@ def datas_to_json(request):  # à revoir au cas où les requetes renvoient des t
         json.dump(content, file)
 
 
-def prepare_datas_to_export():
-    fetched_datas = orders.objects.all()
-    datas_cleaned = []
-    if len(fetched_datas):
-        for data in fetched_datas:
-            date_formatee_fr = data.create_at.strftime("%d %B %Y")
-            time_formatee = data.deliveryHour.strftime(
-                "%Hh%M") if data.deliveryHour else 'Heure sur place: ' + data.onSiteHour.strftime('%H:%M')
-            pizza_names = ", ".join([pizza.__str__() for pizza in data.pizzas.all()])
-            surplace = 'Oui' if data.surplace else 'Non'
-            delivered = {'delivered': 'Livré', 'canceled': 'Annulé', 'on-site': 'Sur place', 'pending': 'En attente'}[
-                data.status]
-            methode_payment_order = 'Chez Izoua' if data.payment_method_order == 'izoua' else 'Chez le livreur'
-            methode_payment_delivery = 'Chez Izoua' if data.payment_method_delivery == 'izoua' else 'Chez le livreur'
-            data_row = [date_formatee_fr, surplace,
-                        data.deliveryAdress if data.deliveryAdress else 'Commandée sur place', time_formatee,
-                        data.deliveryPerson.name if data.deliveryPerson else 'Commandée sur place',
-                        delivered, data.client.name, methode_payment_order if data.surplace else 'Chez Izoua', methode_payment_delivery if data.surplace else 'Chez Izoua', pizza_names,
-                        data.deliveryPrice if data.surplace else 'Commandée sur place',
-                        data.pizza_and_extratopping_price, data.total_price]
-
-            datas_cleaned.append(data_row)
-
-        return datas_cleaned
-
-    return None
-
-
 def create_excel_with_data(file_name, data):
     if data:
         # Construire le chemin absolu du fichier Excel dans MEDIA_ROOT
@@ -953,119 +962,6 @@ def create_excel_with_data(file_name, data):
 
         # Sauvegarder le fichier Excel
         workbook.save(file_path)
-
-
-def get_periodicaly_delivery_infos(request):
-    # Nombre total de livraisons effectuées
-    total_delivery = {'last_period_order_count': get_periodicaly_orders_info(filter_conditions={'surplace': False})[
-        'last_period_order_count'],  # la semaine passée
-                      'week_before_order_count': get_periodicaly_orders_info(filter_conditions={'surplace': False})[
-                          'week_before_order_count']}  # la semaine d'avant
-
-    today = date.today()
-    delivery_men_infos = []
-
-    # Calcul des périodes
-    previous_week_start = today - timedelta(days=today.weekday() + 7)
-    previous_week_end = previous_week_start + timedelta(days=6)
-
-    week_before_start = previous_week_start - timedelta(days=7)
-    week_before_end = week_before_start + timedelta(days=6)
-
-    delivery_men = DeliveryPerson.objects.all()
-
-    if delivery_men:
-        for deliMan in delivery_men:  # pour chaque livreur enregistré
-            # Commandes de la semaine dernière
-            previous_week_orders = orders.objects.filter(
-                create_at__gte=previous_week_start, create_at__lte=previous_week_end,
-                deliveryPerson_id=deliMan.id_deliveryman, status='delivered'
-            )
-
-            # Commandes de la semaine d'avant
-            week_before_orders = orders.objects.filter(
-                create_at__gte=week_before_start, create_at__lte=week_before_end,
-                deliveryPerson_id=deliMan.id_deliveryman, status='delivered'
-            )
-            numb_delivery1 = len(previous_week_orders)
-            total_pizzas1 = sum([order.pizza_and_extratopping_price for order in previous_week_orders if
-                                 order.payment_method_order == 'delivered_man'])
-            total_delivery1 = previous_week_orders.aggregate(
-                total_delivery=Sum('deliveryPrice',
-                                   filter=Q(deliveryPrice__isnull=False) & Q(payment_method_delivery='delivered_man'))
-            )['total_delivery'] or 0
-
-            numb_delivery2 = len(week_before_orders)
-            total_pizzas2 = sum([order.pizza_and_extratopping_price for order in week_before_orders if
-                                 order.payment_method_order == 'delivered_man'])
-            total_delivery2 = week_before_orders.aggregate(total_delivery=Sum('deliveryPrice',
-                                                                              filter=Q(deliveryPrice__isnull=False) & Q(
-                                                                                  payment_method_delivery='delivered_man'))
-                                                           )['total_delivery'] or 0
-
-            delivDict = [deliMan.name, total_pizzas1, total_delivery1, 0.2 * total_delivery1, numb_delivery1,
-                         total_pizzas2, total_delivery2, 0.2 * total_delivery2, numb_delivery2]
-            delivery_men_infos.append(delivDict)
-
-    return delivery_men_infos
-
-def create_pdf_with_data(file_name, data, second_table_data): # note: je dois ajouter un tableau en dessous qui resumme aussi les infos des livreurs
-    if data:
-        # Construire le chemin absolu du fichier PDF dans MEDIA_ROOT
-        file_path = os.path.join(settings.MEDIA_ROOT, 'reports',file_name)
-
-        pdf = FPDF()
-        pdf.set_auto_page_break(auto=True, margin=10)
-        pdf.add_page()
-        pdf.set_font("Arial", size=10)
-
-        # Titre du document
-        pdf.set_font("Arial", size=14, style='B')
-        pdf.cell(0, 10, "Recapitulatif des commandes", ln=True, align='C')
-        pdf.ln(10)  # Ajouter un espacement vertical
-
-        # Entêtes du tableau
-        headers = [
-            "Date", "Sur place", "Adresse Livraison", "Heure livraison", "Livreur",
-            "Statut", "Clients", "Mode de paiement commandes", "Mode de paiement livraison", "Infos Pizzas",
-            "Prix Livraison", "Prix Pizzas + Suppléments", "Total"
-        ]
-        pdf.set_font("Arial", size=10, style='B')
-        for header in headers:
-            pdf.cell(40, 10, header, border=1, align='C')
-        pdf.ln()  # Passer à la ligne suivante
-
-        # Insertion des données
-        pdf.set_font("Arial", size=10)
-        for row_data in data:
-            for value in row_data:
-                pdf.cell(40, 10, str(value), border=1, align='C')
-            pdf.ln()  # Passer à la ligne suivante
-
-        # Ajouter une nouvelle page pour le second tableau
-        pdf.add_page()
-
-        # Entêtes du second tableau
-        second_headers = [
-            "Livreurs", "Total vendu sem. passée", "Total livré sem. passée", "Pourcentage sem. passée",
-            "Nombre livraisons sem. passée", "Total vendu sem. d'avant", "Total livré sem. d'avant",
-            "Pourcentage sem. d'avant", "Nombre livraisons sem. d'avant"
-        ]
-
-        pdf.set_font("Arial", size=10, style='B')
-        for header in second_headers:
-            pdf.cell(35, 10, header, border=1, align='C')  # Largeur adaptée à 9 colonnes
-        pdf.ln()  # Passer à la ligne suivante
-
-        # Insertion des données du second tableau
-        pdf.set_font("Arial", size=10)
-        for row_data in second_table_data:
-            for value in row_data:
-                pdf.cell(35, 10, str(value), border=1, align='C')
-            pdf.ln()  # Passer à la ligne suivante
-
-        # Sauvegarder le fichier PDF
-        pdf.output(file_path)
 
 
 @login_required
