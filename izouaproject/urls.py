@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import path
 from izouapp import views
-from django.conf import settings
+from . import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
@@ -21,10 +21,6 @@ urlpatterns = [
     path('change-order-status/', views.edit_order_status, name='change_status'),
 ]
 
-"""websocket_urlpatterns = [
-    path("ws/notifications/", NotificationConsumer.as_asgi())
-]"""
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-if settings.DEBUG:
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

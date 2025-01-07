@@ -129,12 +129,12 @@
 <!-- Alert Div -->
 <div class="toast-container"></div>
 
-<!-- Alert Button -->
+<!-- Alert Button
 <button class="btn btn-primary position-fixed bottom-0 end-0 m-3" data-bs-toggle="modal" data-bs-target="#ordersModal"  style="z-index: 1050;">
 En attente
 <span class="badge bg-danger rounded-pill" id="badgeNumPending"></span>
-</button>
-  <!-- Modal list -->
+</button>-->
+  <!-- Modal list
 <div class="modal fade" id="ordersModal" tabindex="-1" aria-labelledby="ordersModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl">
       <div class="modal-content">
@@ -192,7 +192,7 @@ En attente
       </div>
     </div>
   </div>
-
+-->
 
 <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel1" aria-hidden="true">
   <div class="modal-dialog modal-lg">
@@ -1284,6 +1284,13 @@ chatSocket.onmessage = function(e){
     createToast(data.message);
 }
 
+function playNotificationSound() {
+            const mediaUrl = "{{ MEDIA_URL|escapejs }}";
+            console.log(mediaUrl);
+            const sound = new Audio(mediaUrl); // Remplacez par le chemin de votre fichier audio
+            sound.play();
+        }
+
 function createToast(msg) {
     // Conteneur de la toast
     const toastContainer = document.querySelector('.toast-container');
@@ -1339,6 +1346,7 @@ function createToast(msg) {
     // Initialiser et afficher la toast avec Bootstrap
     const toastBootstrap = new bootstrap.Toast(toast, { delay: 7000 });
     toastBootstrap.show();
+    //playNotificationSound()
 
     // Supprimer la toast après sa disparition
     toast.addEventListener('hidden.bs.toast', () => {
@@ -1417,7 +1425,8 @@ function setDatasInDom(){  // **************** fonction pour recuperer les Pizza
     if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
       if(Object.keys(data).length === 0){
           bouton.setAttribute('data-bs-target', '#notenoughdataModal');
-      }else{
+      }
+      else if(data.inventory[2]===document.getElementById('datePicker').value){
           bouton.setAttribute('data-bs-target', '#exampleModal');
           const Pizzas = data.pizza;
           const extraToppings = data.extratoppings;
@@ -1448,16 +1457,18 @@ function setDatasInDom(){  // **************** fonction pour recuperer les Pizza
               document.getElementById('body-pending-order').appendChild(tR);
             }
             document.getElementById('number_pending').innerText = document.getElementById('body-pending-order').children.length;
-        }
+          }
 
           listPending = document.getElementsByClassName('confirmPending');
 
           for(const btn of listPending){
-            if(isAdmin !== "True"){
+            if(isAdmin !== "True")
+            {
               btn.setAttribute('disabled',true);
-            }else{
-              btn.removeAttribute('disabled');
-          }
+            }
+            else
+            {
+              btn.removeAttribute('disabled');}
             }
 
           if(Object.keys(data.ordersToChart).length !== 0){
@@ -1648,11 +1659,17 @@ function setDatasInDom(){  // **************** fonction pour recuperer les Pizza
               `
                 }
 
-        }}
+        }
+        else{
+          console.log("la date de l'inventaire et celle de la date choisie ne sont pas les mêmes");
+          console.log("data.inventory[2]=",data.inventory[2]," et document.getElementById('datePicker').value=",document.getElementById('datePicker').value);
+          bouton.setAttribute('data-bs-target', '#notenoughdataModal');
+        }
+      }
         else{
           console.log("data n'est pas un objet")
             }
-      insertSoldSizePizzaInForm('new-order')
+        insertSoldSizePizzaInForm('new-order')
       })
     .catch(error => {
         console.log('Erreur lors du chargement des données', error);

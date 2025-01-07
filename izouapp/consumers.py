@@ -1,3 +1,4 @@
+import traceback
 from datetime import datetime
 
 import django
@@ -75,7 +76,8 @@ class NotificationConsumer(AsyncWebsocketConsumer):
 
             except Exception as e:
                 # Loggez l'erreur pour le débogage
-                print(f"Erreur dans send_messages : {e}")
+                print(f"*************************** Erreur dans send_messages : {e} *************************** ")
+                traceback.print_exc()  # affichage des infos complète de 'exception
             finally:
                 # Pause entre les exécutions
                 await asyncio.sleep(5)
@@ -86,22 +88,29 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         for user in superusers:
             if user.email:
                 try:
+                    print("ici on essaie d'envoyer un mail")
                     send_period_digest(period=period, to_email=user.email, subject=subject)
                 except Exception as e:
                     print(f"Erreur lors de l'envoi de l'email à {user.email} : {e}")
 
     async def check_pending_orders(self):
-        pending_orders = await sync_to_async(list)(orders.objects.filter(status='pending', create_at=django.utils.timezone.now().date()))
+        pending_orders = await sync_to_async(list)(orders.objects.filter(status='pending', create_at=django.utils.timezone.now().date(), notified=False))
 
         for order in pending_orders:
             if order.is_deadline_close:
                 try:
+                    alert_message = await order.str_for_alert
                     await self.channel_layer.group_send(
                         self.room_group_name,
                         {
                             'type': 'chat_message',
-                            'message': order.str_for_alert(),
+                            'message': alert_message,
                         }
                     )
                 except Exception as e:
-                    print(f"Erreur lors de l'envoi de la notification pour la commande {order.id} : {e}")
+                    traceback.print_exc() # affichage des infos complète de 'exception
+                    #print(f"Erreur lors de l'envoi de la notification pour la commande {order.order_id} : {e}")
+                else:
+                    order.notified = True
+                    await sync_to_async(order.save)()
+

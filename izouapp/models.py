@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from email.policy import default
 
 import django
+from asgiref.sync import sync_to_async
 from django.db import models
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumbers import parse, is_valid_number, NumberParseException
@@ -242,8 +243,11 @@ class orders(models.Model):
     def __str__(self):
         return f'Commande No {str(self.order_id)} du {str(self.create_at)}'
 
-    def str_for_alert(self):
-        return f"La commande de M/Mme {self.client} {self.deliveryAdress} est à livrer dans moins de 30 min"
+    @property
+    async def str_for_alert(self):
+        #return f"La commande de M/Mme {self.client} {self.deliveryAdress} est à livrer dans moins de 30 min"
+        client = await sync_to_async(lambda: self.client)()  # Récupération asynchrone de l'objet client
+        return f"La commande de M/Mme {client} {self.deliveryAdress} est à livrer dans moins de 30 min"
 
     @property
     def get_nb_sold_pizzas_by_sizes(self):
@@ -259,7 +263,7 @@ class orders(models.Model):
     def is_deadline_close(self):
 
         now = datetime.now()  # Date et heure actuelles
-        today_delivery_time = datetime.combine(now.date(), self.deliveryHour)  # Combine la date du jour avec l'heure de livraison
+        today_delivery_time = datetime.combine(self.create_at, self.deliveryHour)  # Combine la date du jour avec l'heure de livraison
 
         time_difference = today_delivery_time - now  # Calculer la différence
         return timedelta(0) <= time_difference <= timedelta(minutes=30)
