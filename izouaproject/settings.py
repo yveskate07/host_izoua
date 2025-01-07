@@ -33,7 +33,6 @@ ALLOWED_HOSTS = env.list('ALLOWED_HOSTS') # doit contenir l'url du site qui héb
 # Application definition
 
 INSTALLED_APPS = [
-    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -52,11 +51,9 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'livereload.middleware.LiveReloadScript',
 ]
 
 WSGI_APPLICATION = 'izouaproject.wsgi.application'
-ASGI_APPLICATION = 'izouaproject.asgi.application'
 
 ROOT_URLCONF = 'izouaproject.urls'
 
@@ -84,10 +81,6 @@ DATABASES = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
-}
-
-CHANNEL_LAYERS = {
-    "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"},
 }
 
 

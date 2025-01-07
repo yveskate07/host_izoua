@@ -12,15 +12,13 @@ from django.conf import settings
 
 from accounts.auth_form import UserLoginForm
 from accounts.models import Manager_or_Admin
-from .datas_to_export import prepare_datas_to_export, create_excel_with_data, get_most_and_least_sold_pizza_names
+from .datas_to_export import create_excel_with_data, get_most_and_least_sold_pizza_names
 from .mail_sender import send_period_digest, get_chart_imgs_datas
 from .models import orders, Pizza, Client, DailyInventory, ExtraTopping, PizzaSizePrice, DeliveryPerson, PizzaName, \
     SendMailReminder
 from datetime import timedelta, datetime, date
-from channels.layers import get_channel_layer
 from django.contrib.auth.decorators import login_required
-import openpyxl
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 import os
 import locale
 from django.db.models import Sum,Q
@@ -33,30 +31,35 @@ parent_dir = os.path.dirname(script_dir)
 
 file_path = os.path.join(script_dir, 'static', 'izouapp', 'data.json')
 
-def send_notifications(msg):
-    print('send_notifications called')
-    channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send)(
-        "notifications",
-        {
-            "type": "chat_message",
-            "message": msg
-        }
-    )
 
 # Create your views here.
 @login_required
 def add_inventory(request):  # fonction qui cree et ajoute un nouvel inventaire dans la bd
     if request.method == "POST":
-        date = datetime.strptime(request.POST.get('addDate'), "%Y-%m-%d").date()
-        grande = int(request.POST.get('addGrande'))
-        mini = int(request.POST.get('addMini'))
+        try:
+            date = datetime.strptime(request.POST.get('addDate'), "%Y-%m-%d").date()
+            if date != date.fromisoformat(request.session['date_selected']):
+                return HttpResponse("La date de l'inventaire ne peut pas être différente de la date sélectionnée !")
+            grande = int(request.POST.get('addGrande'))
 
-        DailyInventory.objects.create(small_pizzas_count=mini, large_pizzas_count=grande, date=date)
+            if grande<0:
+                return HttpResponse("Le nombre de grandes pizzas ne peut pas être inférieur à zéro !")
+            mini = int(request.POST.get('addMini'))
+            if mini<0:
+                return HttpResponse("Le nombre de petites pizzas ne peut pas être inférieur à zéro !")
 
-        return redirect(reverse('home'))
+            DailyInventory.objects.create(small_pizzas_count=mini, large_pizzas_count=grande, date=date)
 
-    return redirect(reverse('home'))
+
+        except ValueError:
+            return HttpResponse("Entrez des données valides s'il vous plaît !!")
+
+        finally:
+            return fetching_datas(request, filter_=date,
+                                  date_to_print=datetime.strptime(request.POST.get('addDate'),
+                                                                  "%Y-%m-%d").date().isoformat())
+
+    return HttpResponseRedirect(request.path)
 
 
 class IzouaLoginView(LoginView):
@@ -102,7 +105,8 @@ def edit_order_status(request):
 
         obj_first.save()
 
-    return redirect(reverse('home'))
+    return fetching_datas(request, filter_=request.session.get('date_selected', now().date()),
+                          date_to_print=datetime.strptime(request.session.get('date_selected', now().date()), "%Y-%m-%d").date().isoformat())
 
 @login_required
 def to_admin(request):
@@ -127,8 +131,8 @@ def filter_orders_by_date(request):  # quand l'utilisateur change de date à par
         request.session['date_selected'] = request.POST.get('datePicker')
         datas_to_json(request)
         return fetching_datas(request, filter_=date.fromisoformat(request.session['date_selected']),
-                              date_to_print=datetime.strptime(request.POST.get('datePicker'),
-                                                              "%Y-%m-%d").date().isoformat())
+                                  date_to_print=datetime.strptime(request.POST.get('datePicker'),
+                                                                  "%Y-%m-%d").date().isoformat())
 
     return redirect(reverse('home'))
 
@@ -195,6 +199,8 @@ def split_html_and_get_pizzas(html, pizzas_count_sold, firstOrderStatus, finalOr
                     pizza.extratoppings.add(*extratoppings)
                 pizza_liste.append(pizza)
 
+    if len(pizza_liste) == 0:
+        return HttpResponse("Vous n'avez choisie aucune pizza")
     if not edit:  # si on n'est pas en mode edition
         return pizza_liste, pizzas_count_sold
 
@@ -245,6 +251,9 @@ def edit_order_if_granted(request):
                                 price_delivery=data[13],
                                 pizzas_count_av=data[14]  # int
                                 )
+
+        return fetching_datas(request, filter_=request.session.get('date_selected',now().date()),
+                              date_to_print=request.session.get('date_selected',now().date().isoformat()))
     return redirect(reverse('home'))
 
 
@@ -434,7 +443,7 @@ def edit_order(request):  # modifie simplement le dictionnaire data.json et la c
                 client.update(name=client_name)
                 obj_first.update_at = now()
                 obj_first.surplace = True
-                obj_first.status = order_status
+                #obj_first.status = order_status
                 obj_first.client = client.first()
 
             obj_first.pizzas.add(*tuple(pizzas))
@@ -496,6 +505,10 @@ def edit_order(request):  # modifie simplement le dictionnaire data.json et la c
 
             order.update(edit_requested=True)
 
+
+        return fetching_datas(request, filter_=request.session.get('date_selected', now().date()),
+                              date_to_print=request.session.get('date_selected', now().date().isoformat()))
+
     return redirect(reverse('home'))
 
 
@@ -549,6 +562,7 @@ def send_email():
 
 @login_required
 def home(request):  # quand l'utilisateur atterit sur la page pour la premiere fois
+
     send_email()
     datas_to_json(request)
 
@@ -746,8 +760,8 @@ def fetching_datas(request, filter_, date_to_print):
         f"{request.session.get('date_selected')} {time_now}", "%Y-%m-%d %H:%M:%S").isoformat()
     context['preselected_datetime'] = preselected_datetime  # la date qui sera affichée dans le calendrier
     context['user'] = request.user
-    context['MEDIA_URL'] = os.path.join(settings.MEDIA_ROOT, 'audio', 'notification.wav')
 
+    datas_to_json(request)
     return render(request, 'izouapp/manager_screen.html', context=context)
 
 
@@ -755,110 +769,117 @@ def fetching_datas(request, filter_, date_to_print):
 def add_order(request):
     if request.method == 'POST':
 
-        with open(file_path, 'r') as file:
-            content = json.load(file)
+        try:
+            with open(file_path, 'r') as file:
+                content = json.load(file)
 
-            current_inventory = DailyInventory.objects.filter(date=get_date(request))  # inventaire de la date actuelle
+                current_inventory = DailyInventory.objects.filter(date=get_date(request))  # inventaire de la date actuelle
 
-            pizzas_count_sold = {'Petite': current_inventory[0].sold_small_pizzas_count,
-                                 # le nombre de petites pizzas vendues
-                                 'Grande': current_inventory[
-                                     0].sold_large_pizzas_count}  # le nombre de grandes pizzas vendues
+                pizzas_count_sold = {'Petite': current_inventory[0].sold_small_pizzas_count,
+                                     # le nombre de petites pizzas vendues
+                                     'Grande': current_inventory[
+                                         0].sold_large_pizzas_count}  # le nombre de grandes pizzas vendues
 
-            if request.POST.get('addOrder') == 'order_to_deliver':  # si la commande est à livrer
-                html_list_order = request.POST.get(
-                    'hidden-textarea-from-order-on-delivery')  # bloc html de toutes les pizzas + le bouton supprimer à reintroduire dans le html
+                if request.POST.get('addOrder') == 'order_to_deliver':  # si la commande est à livrer
+                    html_list_order = request.POST.get(
+                        'hidden-textarea-from-order-on-delivery')  # bloc html de toutes les pizzas + le bouton supprimer à reintroduire dans le html
 
-                infos_client = {'name': request.POST.get('client_name'),
-                                'numero': request.POST.get('client_number'),
-                                'adresse': request.POST.get('client_adress'),
-                                'methode_payement_order': request.POST.get('payment_method_order_from_order_to_deliver'),
-                                'methode_payement_delivery': request.POST.get('payment_method_delivery_from_order_to_deliver'),
-                                'prix_livraison': request.POST.get('price_delivery'),
-                                'livreur': request.POST.get('delivery_man'),
-                                'heure_livraison': request.POST.get('delivery_time')}
+                    infos_client = {'name': request.POST.get('client_name'),
+                                    'numero': request.POST.get('client_number'),
+                                    'adresse': request.POST.get('client_adress'),
+                                    'methode_payement_order': request.POST.get('payment_method_order_from_order_to_deliver'),
+                                    'methode_payement_delivery': request.POST.get('payment_method_delivery_from_order_to_deliver'),
+                                    'prix_livraison': request.POST.get('price_delivery'),
+                                    'livreur': request.POST.get('delivery_man'),
+                                    'heure_livraison': request.POST.get('delivery_time')}
 
-                order_html = request.POST.get(
-                    'hidden-textarea-from-order-on-delivery1')  # bloc html de toutes les pizzas
+                    order_html = request.POST.get(
+                        'hidden-textarea-from-order-on-delivery1')  # bloc html de toutes les pizzas
 
-                pizzas, pizzas_count_sold = split_html_and_get_pizzas(html=order_html,
-                                                                      pizzas_count_sold=pizzas_count_sold,
-                                                                      firstOrderStatus='delivered',
-                                                                      finalOrderStatus='delivered')  # noms des pizzas commandées + inventaire des pizzas vendues mis à jour
-                client = Client.objects.create(  # création d'un nouveau client
-                    name=infos_client['name'],
-                    phone_number=infos_client['numero'],
-                    adress=infos_client['adresse'])
+                    pizzas, pizzas_count_sold = split_html_and_get_pizzas(html=order_html,
+                                                                          pizzas_count_sold=pizzas_count_sold,
+                                                                          firstOrderStatus='delivered',
+                                                                          finalOrderStatus='delivered')  # noms des pizzas commandées + inventaire des pizzas vendues mis à jour
+                    client = Client.objects.create(  # création d'un nouveau client
+                        name=infos_client['name'],
+                        phone_number=infos_client['numero'],
+                        adress=infos_client['adresse'])
 
-                try:
-                    deliv_price = int(infos_client['prix_livraison'])
-                except ValueError as e:
-                    return HttpResponse(
-                        "Le prix de la livraison doit être un entier. Veuillez tout autre caractère qui n'est pas un nombre, y compris les espaces.")
-                else:
-                    order = orders.objects.create(  # création d'une nouvelle commande
+                    try:
+                        deliv_price = int(infos_client['prix_livraison'])
+                    except ValueError as e:
+                        return HttpResponse(
+                            "Le prix de la livraison doit être un entier. Veuillez tout autre caractère qui n'est pas un nombre, y compris les espaces.")
+                    else:
+                        order = orders.objects.create(  # création d'une nouvelle commande
+                            create_at=date.fromisoformat(request.session['date_selected']),
+                            deliveryHour=infos_client['heure_livraison'],
+                            deliveryAdress=infos_client['adresse'],
+                            payment_method_order=infos_client['methode_payement_order'],
+                            payment_method_delivery = infos_client['methode_payement_delivery'],
+                            deliveryPerson=DeliveryPerson.objects.filter(name=infos_client['livreur'])[0],
+                            client=client,
+                            deliveryPrice=infos_client['prix_livraison'],
+                        )
+
+                        order.pizzas.add(*tuple(pizzas))  # ajout des pizzas dans la commande
+
+                        current_inventory.update(sold_small_pizzas_count=pizzas_count_sold['Petite'],
+                                                 sold_large_pizzas_count=pizzas_count_sold[
+                                                     'Grande'])  # mise à jour de l'inventaire
+
+                        content['orderToHtml'].append({'order_id': order.order_id,
+                                                       'client_infos': {'name': infos_client['name'],
+                                                                        'number': infos_client['numero'],
+                                                                        'deliveryAdress': infos_client['adresse'],
+                                                                        'paymentModeOrder':infos_client['methode_payement_order'],
+                                                                        'paymentModeDelivery': infos_client['methode_payement_delivery'],
+                                                                        'delivPrice': infos_client['prix_livraison'],
+                                                                        'deliveryMan': infos_client['livreur'],
+                                                                        'deliveryHour': infos_client['heure_livraison']},
+                                                       'orderHTML': html_list_order})
+
+                else:  # si la commande est sur place
+
+                    html_list_order = request.POST.get('hidden-textarea-from-order-on-site')
+
+                    infos_client = {'name_onsite': request.POST.get('client_name')}
+                    order_html = request.POST.get('hidden-textarea-from-order-on-site1')
+
+                    pizzas, pizzas_count_sold = split_html_and_get_pizzas(html=order_html,
+                                                                          pizzas_count_sold=pizzas_count_sold,
+                                                                          firstOrderStatus='delivered',
+                                                                          finalOrderStatus='delivered')
+
+                    client = Client.objects.create(
+                        name=infos_client['name_onsite'])
+
+                    order = orders.objects.create(
                         create_at=date.fromisoformat(request.session['date_selected']),
-                        deliveryHour=infos_client['heure_livraison'],
-                        deliveryAdress=infos_client['adresse'],
-                        payment_method_order=infos_client['methode_payement_order'],
-                        payment_method_delivery = infos_client['methode_payement_delivery'],
-                        deliveryPerson=DeliveryPerson.objects.filter(name=infos_client['livreur'])[0],
-                        client=client,
-                        deliveryPrice=infos_client['prix_livraison'],
+                        surplace=True,
+                        status='on-site',
+                        client=client
                     )
 
-                    order.pizzas.add(*tuple(pizzas))  # ajout des pizzas dans la commande
+                    order.pizzas.add(*tuple(pizzas))
 
                     current_inventory.update(sold_small_pizzas_count=pizzas_count_sold['Petite'],
-                                             sold_large_pizzas_count=pizzas_count_sold[
-                                                 'Grande'])  # mise à jour de l'inventaire
+                                             sold_large_pizzas_count=pizzas_count_sold['Grande'])
 
-                    content['orderToHtml'].append({'order_id': order.order_id,
-                                                   'client_infos': {'name': infos_client['name'],
-                                                                    'number': infos_client['numero'],
-                                                                    'deliveryAdress': infos_client['adresse'],
-                                                                    'paymentModeOrder':infos_client['methode_payement_order'],
-                                                                    'paymentModeDelivery': infos_client['methode_payement_delivery'],
-                                                                    'delivPrice': infos_client['prix_livraison'],
-                                                                    'deliveryMan': infos_client['livreur'],
-                                                                    'deliveryHour': infos_client['heure_livraison']},
-                                                   'orderHTML': html_list_order})
+                    content['orderToHtml'].append(
+                        {'order_id': order.order_id, 'client_infos': {'name': client.name}, 'orderHTML': html_list_order})
 
-            else:  # si la commande est sur place
+            with open(file_path, 'w') as file:
+                json.dump(content, file)
 
-                html_list_order = request.POST.get('hidden-textarea-from-order-on-site')
+        except ValueError:
+            return HttpResponse("Veuillez saisir des données valides.")
 
-                infos_client = {'name_onsite': request.POST.get('client_name')}
-                order_html = request.POST.get('hidden-textarea-from-order-on-site1')
+        finally:
+            return fetching_datas(request, filter_=date.fromisoformat(request.session['date_selected']),
+                                  date_to_print=request.session['date_selected'])
 
-                pizzas, pizzas_count_sold = split_html_and_get_pizzas(html=order_html,
-                                                                      pizzas_count_sold=pizzas_count_sold,
-                                                                      firstOrderStatus='delivered',
-                                                                      finalOrderStatus='delivered')
-
-                client = Client.objects.create(
-                    name=infos_client['name_onsite'])
-
-                order = orders.objects.create(
-                    create_at=date.fromisoformat(request.session['date_selected']),
-                    surplace=True,
-                    status='on-site',
-                    client=client
-                )
-
-                order.pizzas.add(*tuple(pizzas))
-
-                current_inventory.update(sold_small_pizzas_count=pizzas_count_sold['Petite'],
-                                         sold_large_pizzas_count=pizzas_count_sold['Grande'])
-
-                content['orderToHtml'].append(
-                    {'order_id': order.order_id, 'client_infos': {'name': client.name}, 'orderHTML': html_list_order})
-
-        with open(file_path, 'w') as file:
-            json.dump(content, file)
-
-    send_notifications("La commande a été ajouté avec succès")
-    return redirect(reverse('home'))
+    return HttpResponseRedirect(request.path)
 
 
 def get_date(
@@ -948,20 +969,28 @@ def datas_to_json(request):  # à revoir au cas où les requetes renvoient des t
 
 @login_required
 def download_excel(request):
-    create_excel_with_data('izoua.xlsx')
+    if request.method == 'POST':
+        try:
+            first_period = request.POST.get('first_period')
+            second_period = request.POST.get('second_period')
+            create_excel_with_data('izoua.xlsx')
 
-    # Chemin absolu du fichier Excel généré
-    file_path = os.path.join(settings.MEDIA_ROOT, 'reports', 'izoua.xlsx')
+            # Chemin absolu du fichier Excel généré
+            file_path = os.path.join(settings.MEDIA_ROOT, 'reports', 'izoua.xlsx')
 
-    # Vérifier si le fichier existe
-    if not os.path.exists(file_path):
-        return HttpResponse('Fichier non trouvé', status=404)
+            # Vérifier si le fichier existe
+            if not os.path.exists(file_path):
+                return HttpResponse('Fichier non trouvé', status=404)
 
-    # Ouvrir le fichier en mode binaire
-    with open(file_path, 'rb') as file:
-        response = HttpResponse(file, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        response['Content-Disposition'] = 'attachment; filename="commandes.xlsx"'
-        return response
+            # Ouvrir le fichier en mode binaire
+            with open(file_path, 'rb') as file:
+                response = HttpResponse(file, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                response['Content-Disposition'] = 'attachment; filename="commandes.xlsx"'
+                return response
+        except ValueError:
+            return HttpResponse("Veuillez saisir des dates valides")
+
+    return redirect(reverse('home'))
 
 
 @login_required
@@ -969,7 +998,7 @@ def get_datas_to_chart(request):
     if request.method == 'POST':
         delay = int(request.POST.get('delayChart'))
         if delay <= 0:
-            return redirect(reverse('home'))
+            return HttpResponse('Vous devez choisir des nombres positifs !')
         datas = dict()
         days = []
         sold = []

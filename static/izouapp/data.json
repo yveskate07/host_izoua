@@ -1,1 +1,1 @@
-{"pizza": [{"name": "Selucy"}, {"name": "Vosgienne"}, {"name": "Margherita"}], "extratoppings": [], "inventory": [{"name": "Petite", "pizzas_count": 6, "Price": 2500}, {"name": "Grande", "pizzas_count": 4, "Price": 5000}], "deliveryPersons": ["Bazoungoula", "Cagil"], "ordersToChart": {}, "orderToHtml": [], "pending_to_edit": []}
+{}

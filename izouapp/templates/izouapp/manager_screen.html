@@ -129,6 +129,46 @@
 <!-- Alert Div -->
 <div class="toast-container"></div>
 
+<!--div for picking export period-->
+<div class="modal fade" id="periodExport" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="periodExportModalTitle">Sélectionnez une periode</h5>
+        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form action="{% url 'download_excel' %}" class="form-inline" method="POST" id="exportPeriodForm">
+          {% csrf_token %}
+          <label class="sr-only" for="first_period">Date de début :</label>
+          <input
+            required
+            type="date"
+            id="first_period"
+            name="first_period"
+            class="form-control"
+            aria-label="Pick a Date"
+          />
+          <label class="sr-only" for="second_period">Date de fin :</label>
+          <input
+            required
+            type="date"
+            id="second_period"
+            name="second_period"
+            class="form-control"
+            aria-label="Pick a Date"
+          />
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary" style='margin-left:50px; height: 35px;' onclick="document.getElementById('exportPeriodForm').submit()">Exporter</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
 <!-- Alert Button
 <button class="btn btn-primary position-fixed bottom-0 end-0 m-3" data-bs-toggle="modal" data-bs-target="#ordersModal"  style="z-index: 1050;">
 En attente
@@ -240,15 +280,15 @@ En attente
                 <!-- Second Row -->
                 <div class="row g-2 mt-2">
                   <div class="col-md-4">
-                    <select class="form-select" required name="payment_method_order_from_order_to_deliver">
-                      <option selected>Mode de paiement de la commande</option>
+                    <label class="sr-only" for="payment_method_order_from_order_to_deliver">Paiement de la commande:</label>
+                    <select class="form-select" required name="payment_method_order_from_order_to_deliver" id="payment_method_order_from_order_to_deliver">
                       <option value="izoua">Chez Izoua</option>
                       <option value="delivered_man">Chez le livreur</option>
                     </select>
                   </div>
                   <div class="col-md-4">
-                    <select class="form-select" required name="payment_method_delivery_from_order_to_deliver">
-                      <option selected>Mode de paiement de la livraison</option>
+                    <label class="sr-only" for="payment_method_delivery_from_order_to_deliver">Paiement de la livraison:</label>
+                    <select class="form-select" required name="payment_method_delivery_from_order_to_deliver" id="payment_method_delivery_from_order_to_deliver">
                       <option value="izoua">Chez Izoua</option>
                       <option value="delivered_man">Chez le livreur</option>
                     </select>
@@ -257,11 +297,12 @@ En attente
                     <input type="number" class="form-control" placeholder="Prix de la livraison" required name = "price_delivery">
                   </div>
                   <div class="col-md-3">
+                    <label class="sr-only" for="delivery_man">Nom du livreur:</label>
                     <select class="form-select" name="delivery_man" id="delivery_man" required>
                     </select>
                   </div>
-                  <div class="col-md-6 d-flex align-items-center">
-                    <label for="deliveryTime">Heure de livraison:</label>
+                  <div class="col-md-6">
+                    <label class="sr-only" for="deliveryTime">Heure de livraison:</label>
                     <input type="time" id="deliveryTime" class="form-control" required name = "delivery_time">
                   </div>
                 </div>
@@ -295,7 +336,7 @@ En attente
 
                     <div class="col-auto col-md-3">
                       <button class="btn btn-primary" type="button" id="btn-add-normal-deliver" name="add" onclick="AddNormalPizzaToDeliverToInvoice(idBtn='btn-add-normal-deliver', errorid='errorspan1', summary_box='summary-box-from-order-on-delivery')"><i class="bi bi-plus-circle"></i></button>
-                      <span style="color: red;" id="errorspan1"></span>
+                      <h6 style="color: red;" id="errorspan1"></h6>
                     </div>
                   </div>
 
@@ -334,7 +375,7 @@ En attente
                     </div>
                     <div class="col-md-2"  style="display: flex; align-items:flex-end">
                       <button class="btn btn-primary" type = "button" id="btn-add-special-deliver" name="ajout" onclick="AddSpecialPizzaToDeliverToInvoice(idBtn='btn-add-special-deliver',errorid='errorspan2',summary_box='summary-box-from-order-on-delivery')"><i class="bi bi-plus-circle"></i></button>
-                      <span style="color: red;" id="errorspan2"></span>
+                      <h6 style="color: red;" id="errorspan2"></h6>
                     </div>
                   </div>
 
@@ -395,7 +436,7 @@ En attente
 
                     <div class="col-auto">
                       <button class="btn btn-primary" id="btn-add-normal-on-site" type="button" name="ajout1" onclick="AddNormalPizzaOnSiteToInvoice(idBtn='btn-add-normal-on-site', errorid='errorspan3',summary_box='summary-box-from-order-on-site')"><i class="bi bi-plus-circle"></i></button>
-                      <span style="color: red;" id="errorspan3"></span>
+                      <h6 style="color: red;" id="errorspan3"></h6>
                     </div>
                   </div>
 
@@ -438,7 +479,7 @@ En attente
                   </div>
                   <div class="col-md-2"  style="display: flex; align-items:flex-end">
                     <button class="btn btn-primary" id="btn-add-special-on-site" type="button" name="ajout2" onclick="AddSpecialPizzaOnSiteToInvoice(idBtn='btn-add-special-on-site', errorid='errorspan4',summary_box='summary-box-from-order-on-site')"><i class="bi bi-plus-circle"></i></button>
-                    <span style="color: red;" id="errorspan4"></span>
+                    <h6 style="color: red;" id="errorspan4"></h6>
                   </div>
                 </div>
 
@@ -502,15 +543,15 @@ En attente
               <!-- Second Row -->
               <div class="row g-2 mt-2">
                 <div class="col-md-4">
+                  <label class="sr-only" for="edit_payment_method_order_from_order_to_deliver">Paiement de la commande:</label>
                   <select class="form-select" name="payment_method_order_from_order_to_deliver" id="edit_payment_method_order_from_order_to_deliver">
-                    <option selected>Mode de paiement de la commande</option>
                     <option value="izoua">Chez Izoua</option>
                     <option value="delivered_man">Chez le livreur</option>
                   </select>
                 </div>
                 <div class="col-md-4">
+                  <label class="sr-only" for="edit_payment_method_delivery_from_order_to_deliver">Paiement de la livraison:</label>
                   <select class="form-select" name="payment_method_delivery_from_order_to_deliver" id="edit_payment_method_delivery_from_order_to_deliver">
-                    <option selected>Mode de paiement de la livraison</option>
                     <option value="izoua">Chez Izoua</option>
                     <option value="delivered_man">Chez le livreur</option>
                   </select>
@@ -519,11 +560,12 @@ En attente
                   <input type="number" class="form-control" placeholder="Prix de la livraison" name = "price_delivery" id="edit_price_delivery">
                 </div>
                 <div class="col-md-3">
+                  <label class="sr-only" for="editDeliveryMan">Nom du livreur:</label>
                   <select class="form-select" name="delivery_man" id="editDeliveryMan" required>
                   </select>
                 </div>
-                <div class="col-md-6 d-flex align-items-center">
-                  <label for="deliveryTime">Heure de livraison:</label>
+                <div class="col-md-6">
+                  <label for="edit_delivery_time">Heure de livraison:</label>
                   <input type="time" class="form-control" name = "delivery_time" id="edit_delivery_time">
                 </div>
               </div>
@@ -557,8 +599,8 @@ En attente
                 </div>
 
                 <div class="col-auto col-md-3">
-                  <button class="btn btn-primary" id='edit-btn-add-normal-on-delivery' type="button" name="add" onclick="AddNormalPizzaToDeliverToInvoice(idBtn='edit-btn-add-normal-on-delivery', errorid='editerrorspan1',summary_box='edit-summary-box-from-order-on-delivery')"><i class="bi bi-plus-circle"></i></button>
-                  <span style="color: red;" id="editerrorspan1"></span>
+                  <button class="btn btn-primary" id='edit-btn-add-normal-on-delivery' type="button" name="add" onclick="AddNormalPizzaToDeliverToInvoice(idBtn='edit-btn-add-normal-on-delivery', errorid='editerrorspan1',suh6y_box='edit-summary-box-from-order-on-delivery')"><i class="bi bi-plus-circle"></i></button>
+                  <h6 style="color: red;" id="editerrorspan1"></h6>
                 </div>
               </div>
 
@@ -596,8 +638,8 @@ En attente
                   </select>
                 </div>
                 <div class="col-md-2" style="display: flex; align-items:flex-end">
-                  <button class="btn btn-primary" id="edit-btn-add-special-on-delivery" type="button" name="ajout" onclick="AddSpecialPizzaToDeliverToInvoice(idBtn='edit-btn-add-special-on-delivery', errorid='editerrorspan2',summary_box='edit-summary-box-from-order-on-delivery')"><i class="bi bi-plus-circle"></i></button>
-                  <span style="color: red;" id="editerrorspan2"></span>
+                  <button class="btn btn-primary" id="edit-btn-add-special-on-delivery" type="button" name="ajout" onclick="AddSpecialPizzaToDeliverToInvoice(idBtn='edit-btn-add-special-on-delivery', errorid='editerrorspan2',suh6y_box='edit-summary-box-from-order-on-delivery')"><i class="bi bi-plus-circle"></i></button>
+                  <h6 style="color: red;" id="editerrorspan2"></h6>
                 </div>
               </div>
 
@@ -688,8 +730,8 @@ En attente
               </div>
 
               <div class="col-auto">
-                <button class="btn btn-primary" id='edit-btn-add-normal-on-site' type="button" name="ajout1" onclick="AddNormalPizzaOnSiteToInvoice(idBtn='edit-btn-add-normal-on-site',errorid='editerrorspan3',summary_box='edit-summary-box-from-order-on-site')"><i class="bi bi-plus-circle"></i></button>
-                <span style="color: red;" id="editerrorspan3"></span>
+                <button class="btn btn-primary" id='edit-btn-add-normal-on-site' type="button" name="ajout1" onclick="AddNormalPizzaOnSiteToInvoice(idBtn='edit-btn-add-normal-on-site',errorid='editerrorspan3',suh6y_box='edit-summary-box-from-order-on-site')"><i class="bi bi-plus-circle"></i></button>
+                <h6 style="color: red;" id="editerrorspan3"></h6>
               </div>
             </div>
 
@@ -731,8 +773,8 @@ En attente
                 </select>
               </div>
               <div class="col-md-2" style="display: flex; align-items:flex-end">
-                <button class="btn btn-primary" id='edit-btn-add-special-on-site' type="button" name="ajout2" onclick="AddSpecialPizzaOnSiteToInvoice(idBtn='edit-btn-add-special-on-site', errorid='editerrorspan4',summary_box='edit-summary-box-from-order-on-site')"><i class="bi bi-plus-circle"></i></button>
-                <span style="color: red;" id="editerrorspan4"></span>
+                <button class="btn btn-primary" id='edit-btn-add-special-on-site' type="button" name="ajout2" onclick="AddSpecialPizzaOnSiteToInvoice(idBtn='edit-btn-add-special-on-site', errorid='editerrorspan4',suh6y_box='edit-summary-box-from-order-on-site')"><i class="bi bi-plus-circle"></i></button>
+                <h6 style="color: red;" id="editerrorspan4"></h6>
               </div>
             </div>
 
@@ -922,7 +964,7 @@ En attente
           </button>
           <h3>Commandes</h3>
           <div class="d-flex">
-            <button type="button" class="btn btn-light" style="margin-right: 5px;" onclick="window.location.href=`{% url 'download_excel' %}`"><i class="bi bi-download"></i>Exporter</button>
+            <button type="button" class="btn btn-light" style="margin-right: 5px;" data-bs-toggle="modal" data-bs-target="#periodExport"><i class="bi bi-download"></i>Exporter</button>
             <button type="button" class="btn btn-primary" id="add-new-order-btn" data-bs-toggle="modal" data-bs-target="#exampleModal">Ajouter une commande</button>
           </div>
         </div>
@@ -1271,7 +1313,7 @@ const sidebar = document.getElementById("sidebar");
 const toggleBtn = document.getElementById("toggleSidebar");
 const content = document.querySelector(".content");
 
-let url = `ws://${window.location.host}/ws/socket-server/`
+/*let url = `ws://${window.location.host}/ws/socket-server/`
 
 const chatSocket = new WebSocket(url)
 
@@ -1352,7 +1394,7 @@ function createToast(msg) {
     toast.addEventListener('hidden.bs.toast', () => {
         toast.remove();
     });
-}
+}*/
 
 /* New event listener to capture incoming messages
 chatSocket.addEventListener("message", (event) => {
@@ -1420,6 +1462,7 @@ function setDatasInDom(){  // **************** fonction pour recuperer les Pizza
     return response.json(); // Convertit en objet JavaScript
     })
   .then(data => {
+    //console.log('datas :',data)
     const bouton = document.getElementById('add-new-order-btn');
 
     if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
@@ -1648,10 +1691,7 @@ function setDatasInDom(){  // **************** fonction pour recuperer les Pizza
               const html = DeliveryMen.map(delivery_man =>`
                 <option value="${delivery_man}">${delivery_man}</option>
               `).join('');
-              element.innerHTML = `
-              <option selected>Nom du livreur</option>
-              `;
-              element.innerHTML += html;
+              element.innerHTML = html;
                                       }
             else{
               element.innerHTML = `
@@ -1729,7 +1769,7 @@ document.addEventListener('DOMContentLoaded', () => {
   //date-invetory-field
   if(document.getElementById('date-invetory-field1')){
     const dateFromFirstInventory = transformerDate(document.getElementById('date-invetory-field1').innerText);
-    if(dateFromFirstInventory === reformaterDate(formattedDate)){
+    if(dateFromFirstInventory === reformaterDate(formattedDate).substring(1)){
       document.getElementById('addInventoryBtn').setAttribute('disabled', true);
     }else{
       document.getElementById('addInventoryBtn').removeAttribute('disabled')
@@ -2555,22 +2595,18 @@ function editOrder(grande,petite,status,orderLine, order_id_, client_id, deliver
     document.getElementById('edit_client_number').value = order_dict.client_infos.number;
     document.getElementById('edit_client_adress').value = order_dict.client_infos.deliveryAdress;
     if(order_dict.client_infos.paymentModeOrder==="izoua"){
-        document.getElementById('edit_payment_method_order_from_order_to_deliver').innerHTML = `<option>Mode de paiement de la commande</option>
-                  <option selected value="izoua">Chez Izoua</option>
+        document.getElementById('edit_payment_method_order_from_order_to_deliver').innerHTML = `<option selected value="izoua">Chez Izoua</option>
                   <option value="delivered_man">Chez le livreur</option>`;
     }else{
-        document.getElementById('edit_payment_method_order_from_order_to_deliver').innerHTML = `<option>Mode de paiement de la commande</option>
-                  <option value="izoua">Chez Izoua</option>
+        document.getElementById('edit_payment_method_order_from_order_to_deliver').innerHTML = `<option value="izoua">Chez Izoua</option>
                   <option selected value="delivered_man">Chez le livreur</option>`;
     }
 
     if(order_dict.client_infos.paymentModeDelivery==="izoua"){
-        document.getElementById('edit_payment_method_delivery_from_order_to_deliver').innerHTML = `<option>Mode de paiement de la livraison</option>
-                  <option selected value="izoua">Chez Izoua</option>
+        document.getElementById('edit_payment_method_delivery_from_order_to_deliver').innerHTML = `<option selected value="izoua">Chez Izoua</option>
                   <option value="delivered_man">Chez le livreur</option>`;
     }else{
-    document.getElementById('edit_payment_method_delivery_from_order_to_deliver').innerHTML = `<option>Mode de paiement de la livraison</option>
-                  <option value="izoua">Chez Izoua</option>
+    document.getElementById('edit_payment_method_delivery_from_order_to_deliver').innerHTML = `<option value="izoua">Chez Izoua</option>
                   <option selected value="delivered_man">Chez le livreur</option>`;
     }
 

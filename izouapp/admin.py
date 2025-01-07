@@ -55,7 +55,6 @@ class ordersAdmin(admin.ModelAdmin):
     list_per_page = 30
 
     fields = ('deliveryHour',
-              'notified',
               'deliveryAdress',
               'payment_method_order',
               'payment_method_delivery',
@@ -66,7 +65,6 @@ class ordersAdmin(admin.ModelAdmin):
               'deliveryPerson',
               'client',
               'deliveryPrice',
-              'edit_requested',
               'description',)
     readonly_fields = ('description',)
 

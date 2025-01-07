@@ -5,7 +5,6 @@ import numpy as np
 import openpyxl
 import pandas as pd
 from django.db.models import Sum, Q
-#from fpdf import FPDF
 from izouapp.models import orders, DeliveryPerson, Pizza
 from izouaproject import settings
 import matplotlib.pyplot as plt
@@ -15,8 +14,8 @@ from matplotlib.backends.backend_pdf import PdfPages
 img_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'izouapp', 'images','img_gen_from_charts')# chemin où seront stocké les fichiers img
 
 
-def prepare_datas_to_export():
-    fetched_datas = orders.objects.all()
+def prepare_datas_to_export(first_period=None,second_period=None):
+    fetched_datas = orders.objects.filter(create_at__gte=first_period, create_at__lte=second_period)
     datas_cleaned = []
     if len(fetched_datas):
         for data in fetched_datas:
@@ -641,8 +640,8 @@ def generate_4x_charts(datasets, file_name="total commandes et chiffres d'affair
     return os.path.join(img_path,file_name)
 
 
-def create_excel_with_data(file_name):
-    data = prepare_datas_to_export()
+def create_excel_with_data(file_name,first_period=None,second_period=None):
+    data = prepare_datas_to_export(first_period,second_period)
     if data:
         # Construire le chemin absolu du fichier Excel dans MEDIA_ROOT
         file_path = os.path.join(settings.MEDIA_ROOT, 'reports',file_name)

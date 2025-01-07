@@ -22,22 +22,21 @@ def get_chart_imgs_datas(period):
     orders_type = get_periodicaly_orders_by_type(period=period)  # toutes les commandes des deux dernieres periodes mais par type
 
     pizzas_count_sold = get_most_and_least_sold_pizza_names(period=period)
-    print(f"pizzas_count_sold: {pizzas_count_sold}")
 
     last_period_str = {'week':'Semaine passée', 'month':'Mois passé'}.get(period)
     before_period_str = {'week':"Semaine d'avant", 'month':"Mois d'avant"}.get(period)
 
-    title1 = "Comparaison des commandes pour "+ {'week':'les deux dernières semaines', 'month':'les deux derniers mois'}.get(period)
+    title1 = "Commandes pour "+ {'week':'les deux dernières semaines', 'month':'les deux derniers mois'}.get(period)
 
-    title2 = f"Comparaison des chiffres d'affaire pour "+ {'week':'les deux dernières semaines', 'month':'les deux derniers mois'}.get(period)
+    title2 = f"Chiffres d'affaire pour "+ {'week':'les deux dernières semaines', 'month':'les deux derniers mois'}.get(period)
 
-    title3 = f"Comparaison des commandes par type pour "+ {'week':'les deux dernières semaines', 'month':'les deux derniers mois'}.get(period)
+    title3 = f"Commandes par type pour "+ {'week':'les deux dernières semaines', 'month':'les deux derniers mois'}.get(period)
 
-    title4 = f"Comparaison des chiffres d'affaire pour "+ {'week':'les deux dernières semaines', 'month':'les deux derniers mois'}.get(period)
+    title4 = f"Chiffres d'affaire pour "+ {'week':'les deux dernières semaines', 'month':'les deux derniers mois'}.get(period)
 
-    title5 = f"Proportion des pizzas les plus vendues durant "+ {'week':'la semaine dernière', 'month':'le mois dernier'}.get(period)
+    title5 = f"Pizzas les plus vendues durant "+ {'week':'la semaine dernière', 'month':'le mois dernier'}.get(period)
 
-    title6 = "Proportion des pizzas les plus vendues durant "+ {'week':"la semaine d'avant",'month':"le mois d'avant"}.get(period)
+    title6 = "Pizzas les plus vendues durant "+ {'week':"la semaine d'avant",'month':"le mois d'avant"}.get(period)
 
 
     data1 = [{'Catégorie':['Nombre de commandes'],'dataset1':[orders_['last_period_order_count']],'dataset2':[orders_['period_before_order_count']]}, None, 'Commandes', last_period_str, before_period_str, title1]
@@ -55,13 +54,11 @@ def get_chart_imgs_datas(period):
     except Exception as e:
         data6=None
 
-    print(pizzas_count_sold)
     return [data1,data2,data3,data4],[data5,data6]
 
 
 def get_all_paths(period):
     datas = get_chart_imgs_datas(period)
-    print("datas from get_all_paths: ", datas)
     file1 = generate_2x_polar(datas[1])
     file2 = generate_4x_charts(datas[0])
     file3 = create_excel_with_data('rapport.xlsx')
