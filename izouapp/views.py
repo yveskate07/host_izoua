@@ -27,9 +27,9 @@ locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(script_dir)
-#file_path = os.path.join(parent_dir, 'staticfiles', 'izouapp', 'data.json') # pour lea production
+file_path = os.path.join(parent_dir, 'staticfiles', 'izouapp', 'data.json') # pour lea production
 
-file_path = os.path.join(script_dir, 'static', 'izouapp', 'data.json')
+#file_path = os.path.join(script_dir, 'static', 'izouapp', 'data.json')
 
 
 # Create your views here.
@@ -525,7 +525,7 @@ def send_email():
         reminder_first = reminder.first()
 
 
-    if today.weekday() == 0 and not reminder_first.weekly_digest_sent:  # un Lundi
+    if today.weekday() == 1 and not reminder_first.weekly_digest_sent:  # un Lundi
         print("Envoie d'un mail pour la periode: week")
         superusers = Manager_or_Admin.objects.filter(is_superuser=True)
         user = None
@@ -540,7 +540,7 @@ def send_email():
             reminder_first.weekly_digest_sent = True
             reminder_first.save()
 
-    elif today.day == 1 and not reminder_first.monthly_digest_sent:  # Premier jour du mois
+    elif today.day == 7 and not reminder_first.monthly_digest_sent:  # Premier jour du mois
         print("Envoie d'un mail pour la periode: month")
         superusers = Manager_or_Admin.objects.filter(is_superuser=True)
         user = None
@@ -559,11 +559,14 @@ def send_email():
         reminder_first.monthly_digest_sent = False
         reminder_first.save()
 
+    return HttpResponse('Email envoye avec succes')
+
 
 @login_required
 def home(request):  # quand l'utilisateur atterit sur la page pour la premiere fois
 
     send_email()
+    get_datas_to_chart_directly(request_=request,days_=30)
     datas_to_json(request)
 
     return fetching_datas(request, filter_=None, date_to_print=now().date().isoformat())
@@ -633,7 +636,7 @@ def fetching_datas(request, filter_, date_to_print):
                                  'j': data.deliveryPerson.id_deliveryman if data.surplace == False else None,
                                  'k': sum([1 for i in data.pizzas.all() if i.size == 'Petite']),
                                  'l': sum([1 for i in data.pizzas.all() if i.size == 'Grande']), 'm': client.adress,
-                                 'n': client.phone_number}  # dictionnaire des commandes
+                                 'n': client.phone_number, 'o':data.onSiteHour}  # dictionnaire des commandes
 
                     else:  # si le client n'existe pas
                         # fetched_datas_clients.append(client)
@@ -879,7 +882,7 @@ def add_order(request):
             return fetching_datas(request, filter_=date.fromisoformat(request.session['date_selected']),
                                   date_to_print=request.session['date_selected'])
 
-    return HttpResponseRedirect(request.path)
+    return redirec(reverse('home'))
 
 
 def get_date(
@@ -993,41 +996,50 @@ def download_excel(request):
     return redirect(reverse('home'))
 
 
-@login_required
-def get_datas_to_chart(request):
-    if request.method == 'POST':
-        delay = int(request.POST.get('delayChart'))
-        if delay <= 0:
-            return HttpResponse('Vous devez choisir des nombres positifs !')
-        datas = dict()
-        days = []
-        sold = []
-        unsold = []
+def get_datas_to_chart_directly(request_=dict(), days_=30):
+    delay_value = request_.POST.get('delayChart')
+    delay = int(delay_value) if delay_value is not None else -1
+    if not delay or delay<0:
+        delay = days_
+    datas = dict()
+    days = []
+    sold = []
+    unsold = []
 
-        for i in range(delay):
-            daily_inventory = DailyInventory.objects.filter(
-                date=date.fromisoformat(request.session['date_selected']) - timedelta(i)).first()
-            if daily_inventory:
-                date_to_format = date.fromisoformat(request.session['date_selected']) - timedelta(i)
-                date_formatee_fr = date_to_format.strftime("%d/%m/%Y")
-                days.append(date_formatee_fr)
-                sold.append(daily_inventory.sold)
-                unsold.append(daily_inventory.remaining)
-            else:
-                continue
+    for i in range(delay):
+        daily_inventory = DailyInventory.objects.filter(
+            date=date.fromisoformat(request_.session['date_selected']) - timedelta(i)).first()
+        if daily_inventory:
+            date_to_format = date.fromisoformat(request_.session['date_selected']) - timedelta(i)
+            date_formatee_fr = date_to_format.strftime("%d/%m/%Y")
+            days.append(date_formatee_fr)
+            sold.append(daily_inventory.sold)
+            unsold.append(daily_inventory.remaining)
+        else:
+            continue
 
-        datas['days'] = list(reversed(days))
-        datas['sold'] = list(reversed(sold))
-        datas['unsold'] = list(reversed(unsold))
+    datas['days'] = list(reversed(days))
+    datas['sold'] = list(reversed(sold))
+    datas['unsold'] = list(reversed(unsold))
 
-        with open(file_path, 'r') as file:
-            content = json.load(file)
+    with open(file_path, 'r') as file:
+        content = json.load(file)
 
-            content['ordersToChart'] = datas
+        content['ordersToChart'] = datas
 
-        with open(file_path, 'w') as file:
-            json.dump(content, file)
+    with open(file_path, 'w') as file:
+        json.dump(content, file)
 
     return redirect(reverse('home'))
+
+@login_required
+def get_datas_to_chart(request):
+    get_datas_to_chart_directly(request_=request)
+    return redirect(reverse('home'))
+
+
+
+
+
 
 # <i class="bi bi-x-lg" onclick='deletePendingEdit(row='pending-{len_row}',order={order_to_edit})' style="background-color: green; padding: 10px; border-radius: 5px; display: inline-block;"></i>

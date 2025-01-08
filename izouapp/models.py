@@ -222,7 +222,7 @@ class orders(models.Model):
 
     @property
     def pizza_and_extratopping_price(self):
-        return sum([pizza.price for pizza in self.pizzas.all()])
+        return sum([pizza.price for pizza in self.pizzas.all()]) + 500
 
     def __str__(self):
         return f'Commande No {str(self.order_id)} du {str(self.create_at)}'

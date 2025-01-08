@@ -1042,7 +1042,7 @@ En attente
                 <th class="text-center">Commande</th>
                 <th class="text-center">Statut</th>
                 <th class="text-center">Total</th>
-                <th class="text-center">Heure livraison</th>
+                <th class="text-center">Heure</th>
                 <th class="text-center">Livreur</th>
                 <th class="text-center">Modifier</th>
               </tr>
@@ -1095,7 +1095,11 @@ En attente
                     {% endif %}
                   </td>
                   <td class="text-center">{{ order.e }}</td>
-                  <td class="text-center">{{ order.f }}</td>
+                  {% if order.f %}
+                  <td class="text-center">Livraison à {{ order.f }}</td>
+                  {% else %}
+                  <td class="text-center">Commandée sur place à <br> {{order.o}}</td>
+                  {% endif %}
                   <td class="text-center">{{ order.g }}</td>
                   <td class="text-center"><i onclick="editOrder(grande='{{order.l}}',petite='{{order.k}}', status='{{order.d}}',orderLine='orderline{{forloop.counter}}',order_id_='{{order.a}}', client_id='{{order.i}}', deliver_id='{{order.j}}', on_site='{{order.h}}')" id="editBtnOrder-{{order.0}}" class="bi bi-pen"></i></td>
                 </tr>
@@ -1159,8 +1163,8 @@ En attente
         </div>
         <!-- Analyse -->
         <div class="justify-content-between justify-content-md-end align-items-center mb-3 d-flex flex-column">
-          <h4 class="text-center" style="margin-top: 45px; width: 30%;" id="analyses-box">Analyses</h4>
-          <form action="{% url 'display_chart' %}" method="POST" class="d-flex" style="width: 30%;">
+          <h4 class="text-center" style="margin-top: 45px; width: 30%;" id="analyses-box">Analyses des pizzas vendues/non vendues des 30 derniers jours</h4>
+          <form action="{% url 'display_chart' %}" method="GET" class="d-flex" style="width: 30%;">
             {% csrf_token %}
             <input type="number" class="form-control text-center" placeholder="Nombre de jours" name="delayChart" id="delayChart">
             <input type="submit" value="Afficher" class="btn btn-primary btn-sm">
@@ -1783,7 +1787,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Ajouter un écouteur d'événements pour chaque modal
         modal.addEventListener('hidden.bs.modal', function () {
             // Recharger la page lorsque la modal se ferme
-            window.location.reload();
+            window.location.href = "{% url 'home' %}";
         });
     });
     if(document.getElementById('box_pending_orders')){
@@ -1848,7 +1852,7 @@ async function getPizzaPrize(size){ // fonction pour obtenir le prix etant donn�
     // Recherche de la taille correspondante
     const matchingItem = inventoryPrice.find(item => item.name === size);
     if (matchingItem) {
-      return matchingItem.Price; // Assurez-vous que la propriété est correctement nommée dans JSON
+      return parseInt(matchingItem.Price, 10)+500; // Assurez-vous que la propriété est correctement nommée dans JSON
     } else {
       throw new Error(`La taille ${size} n'a pas été trouvée dans l'inventaire.`);
     }
@@ -2049,7 +2053,7 @@ async function AddSpecialPizzaToDeliverToInvoice(idBtn,errorid,summary_box) { //
     const pizzaPrice = await getPizzaPrize(pizzaSize);
     const toppingPrices = await getToppingPrices(pizzaExtraToppings);
 
-    const total_Price = pizzaPrice + toppingPrices;
+    const total_Price = pizzaPrice + toppingPrices + 500;
 
     const html = `
         <input type="text" class='col-md-2 mx-1' id="name" value="${pizzaHalf1 + ' - ' + pizzaHalf2}" disabled>
