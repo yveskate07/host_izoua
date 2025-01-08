@@ -19,6 +19,7 @@ urlpatterns = [
     path('edit-1/', views.edit_order, name='edit_order1'),
     path('edit-2/', views.edit_order_if_granted, name='edit_order2'),
     path('change-order-status/', views.edit_order_status, name='change_status'),
+    path('delivery-dashboard', views.delivery_men_board, name='delivery_dashboard'),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

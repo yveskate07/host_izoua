@@ -169,6 +169,10 @@
     </div>
   </div>
 </div>
+
+<!----------------------------------------------------------------------------------------- start infos livreurs modal ----------------------------------------------------------------------------------------->
+
+<!----------------------------------------------------------------------------------------- end infos livreurs modal ----------------------------------------------------------------------------------------->
 <!-- Alert Button
 <button class="btn btn-primary position-fixed bottom-0 end-0 m-3" data-bs-toggle="modal" data-bs-target="#ordersModal"  style="z-index: 1050;">
 En attente
@@ -1217,7 +1221,7 @@ En attente
 
 
         <!-- Détails Livreurs -->
-         <h4 class="text-center mb-5" style="margin-top: 25px;" id="infos">Infos livreurs</h4>
+         <h4 class="text-center mb-5" style="margin-top: 25px;" id="infos">Infos livreurs<a href="{% url 'delivery_dashboard' %}"><h6>voir rapport complet par livreurs</h6></a></h4>
          <div class="container justify-content-center" style="display: flex; flex-direction: row; gap: 15px;">
            {% if delivery_men_infos %}
            {% for deliver in delivery_men_infos %}
@@ -1790,9 +1794,9 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = "{% url 'home' %}";
         });
     });
-    if(document.getElementById('box_pending_orders')){
+    /*if(document.getElementById('box_pending_orders')){
         document.getElementById('badgeNumPending').innerText = document.getElementById('box_pending_orders').children.length;
-    }
+    }*/
   setDatasInDom();
 });
 

@@ -768,6 +768,56 @@ def fetching_datas(request, filter_, date_to_print):
     return render(request, 'izouapp/manager_screen.html', context=context)
 
 
+def get_delivery_men():
+    delivery_men = DeliveryPerson.objects.all()
+    if len(delivery_men) == 0:
+        names = None
+    else:
+        names = [person.name for person in delivery_men]
+
+    return  names
+
+@login_required
+def get_summary_of_one_delivery_man(request):
+    context = dict()
+    his_orders = []
+    total_orders_in_cfa = 0
+    total_delivery_in_cfa = 0
+    total_20_percent_delivery_in_cfa = 0
+    if request.method == 'POST':
+        person = request.POST.get('selectDeliveryMan')
+        date = datetime.strptime(request.POST.get('selectDate'),"%Y-%m-%d").date()
+
+        if person != 'none':
+            deliverPerson = DeliveryPerson.objects.filter(name=person)
+            list_orders = orders.objects.filter(deliveryPerson=deliverPerson, create_at=date, status='delivered')
+            for order in list_orders:
+                pizza_names = ", ".join(
+                    [" - ".join([pizza.moitie_1, pizza.moitie_2]) if pizza.status == 'Spéciale' else pizza.name for pizza in order.pizzas.all()])
+                his_orders.append({'a':person,'b':pizza_names, 'c':order.client,
+                                   'd':order.pizza_and_extratopping_price if order.payment_method_order=='delivered_man' else 0,
+                                   'e': order.deliveryPrice if order.payment_method_delivery=='delivered_man' else 0,
+                                   'f': order.deliveryHour})
+                total_orders_in_cfa += order.total_price
+                total_delivery_in_cfa += order.deliveryPrice
+            context['his_orders'] = his_orders
+            context['total_orders_in_cfa'] = total_orders_in_cfa
+            context['total_delivery_in_cfa'] = total_delivery_in_cfa
+            context['total_20_percent_delivery_in_cfa'] = 0.2*total_20_percent_delivery_in_cfa
+
+
+    context['delivery_men'] = get_delivery_men()
+
+    return render(request, 'izouapp/delivery_men_dashboard.html', context=context)
+
+@login_required
+def delivery_men_board(request):
+    context = dict()
+    context['delivery_men'] = get_delivery_men()
+
+    return render(request, 'izouapp/delivery_men_dashboard.html', context=context)
+
+
 @login_required
 def add_order(request):
     if request.method == 'POST':
@@ -882,7 +932,7 @@ def add_order(request):
             return fetching_datas(request, filter_=date.fromisoformat(request.session['date_selected']),
                                   date_to_print=request.session['date_selected'])
 
-    return redirec(reverse('home'))
+    return redirect(reverse('home'))
 
 
 def get_date(
