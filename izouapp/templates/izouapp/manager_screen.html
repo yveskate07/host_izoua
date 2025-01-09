@@ -1115,7 +1115,7 @@ En attente
             </tbody>
           </table>
 
-          <h4 class="text-center" style="margin-top: 45px;" id="inventaire-box">Inventaire</h4>
+          <h4 class="text-center" style="margin-top: 45px;" id="inventaire-box">Inventaires des 7 derniers jours</h4>
           <div class="card p-3 mx-3">
             <div class="d-flex justify-content-between justify-content-md-end align-items-center mb-3">
               <div>
@@ -1470,7 +1470,7 @@ function setDatasInDom(){  // **************** fonction pour recuperer les Pizza
     return response.json(); // Convertit en objet JavaScript
     })
   .then(data => {
-    //console.log('datas :',data)
+    console.log('datas :',data)
     const bouton = document.getElementById('add-new-order-btn');
 
     if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
@@ -1790,7 +1790,7 @@ document.addEventListener('DOMContentLoaded', () => {
     modals.forEach(function(modal) {
         // Ajouter un écouteur d'événements pour chaque modal
         modal.addEventListener('hidden.bs.modal', function () {
-            // Recharger la page lorsque la modal se ferme
+            // allers vers home lorsque le modal se ferme
             window.location.href = "{% url 'home' %}";
         });
     });

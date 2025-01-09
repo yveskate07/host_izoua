@@ -1,7 +1,5 @@
 import json
 import traceback
-
-from asgiref.sync import async_to_sync
 from django.middleware.csrf import get_token
 from bs4 import BeautifulSoup
 from django.contrib.auth.views import LoginView, LogoutView
@@ -23,6 +21,7 @@ import os
 import locale
 from django.db.models import Sum,Q
 
+
 locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -39,20 +38,20 @@ def add_inventory(request):  # fonction qui cree et ajoute un nouvel inventaire 
         try:
             date = datetime.strptime(request.POST.get('addDate'), "%Y-%m-%d").date()
             if date != date.fromisoformat(request.session['date_selected']):
-                return HttpResponse("La date de l'inventaire ne peut pas être différente de la date sélectionnée !")
+                return render(request, 'izouapp/error_template.html', context={'error':"La date de l'inventaire ne peut pas être différente de la date sélectionnée !"})
             grande = int(request.POST.get('addGrande'))
 
             if grande<0:
-                return HttpResponse("Le nombre de grandes pizzas ne peut pas être inférieur à zéro !")
+                return render(request, 'izouapp/error_template.html', context={'error':"Le nombre de grandes pizzas ne peut pas être inférieur à zéro !"})
             mini = int(request.POST.get('addMini'))
             if mini<0:
-                return HttpResponse("Le nombre de petites pizzas ne peut pas être inférieur à zéro !")
+                return render(request, 'izouapp/error_template.html', context={'error':"Le nombre de petites pizzas ne peut pas être inférieur à zéro !"})
 
             DailyInventory.objects.create(small_pizzas_count=mini, large_pizzas_count=grande, date=date)
 
 
         except ValueError:
-            return HttpResponse("Entrez des données valides s'il vous plaît !!")
+            return render(request, 'izouapp/error_template.html', context={'error':"Entrez des données valides s'il vous plaît !!"})
 
         finally:
             return fetching_datas(request, filter_=date,
@@ -80,14 +79,14 @@ def edit_order_status(request):
         if len(order_to_edit):
             obj_first = order_to_edit.first()
         else:
-            return HttpResponse("Cette commande a été supprimée depuis l'interface admin")
+            return render(request, 'izouapp/error_template.html', context={'error':"Cette commande a été supprimée depuis l'interface admin"})
 
         if len(DailyInventory.objects.filter(date=get_date(request))):
             current_inventory = DailyInventory.objects.filter(date=get_date(request))
             soldTotalStart = {'Petite':current_inventory[0].sold_small_pizzas_count,
                               'Grande':current_inventory[0].sold_large_pizzas_count}
         else:
-            return HttpResponse("L'inventaire pour le jour choisi n'existe pas ou a été supprimé.")
+            return render(request, 'izouapp/error_template.html', context={'error':"L'inventaire pour le jour choisi n'existe pas ou a été supprimé."})
 
         soldSizes = obj_first.get_nb_sold_pizzas_by_sizes
 
@@ -137,7 +136,7 @@ def filter_orders_by_date(request):  # quand l'utilisateur change de date à par
     return redirect(reverse('home'))
 
 
-def split_html_and_get_pizzas(html, pizzas_count_sold, firstOrderStatus, finalOrderStatus, edit=False):
+def split_html_and_get_pizzas(request,html, pizzas_count_sold, firstOrderStatus, finalOrderStatus, edit=False):
     # html: un gros bloc de code html contenant toute les pizzas,
     # pizzas_count_sold: dictionnaire contenant le nombre de petites/grandes pizzas vendues
 
@@ -200,7 +199,7 @@ def split_html_and_get_pizzas(html, pizzas_count_sold, firstOrderStatus, finalOr
                 pizza_liste.append(pizza)
 
     if len(pizza_liste) == 0:
-        return HttpResponse("Vous n'avez choisie aucune pizza")
+        return render(request, 'izouapp/error_template.html', context={'error':"Vous n'avez choisie aucune pizza"})
     if not edit:  # si on n'est pas en mode edition
         return pizza_liste, pizzas_count_sold
 
@@ -266,14 +265,14 @@ def edit_order_directly(request, client_to_edit, order_to_edit, id_deliveryman, 
     if order.first():
         obj_first = order.first()
     else:
-        return HttpResponse("Cette commande n'existe pas ou a été supprimée.", order.first())
+        return render(request, 'izouapp/error_template.html', context={'error':"Cette commande n'existe pas ou a été supprimée."})
 
     initial_status = obj_first.status
 
     if len(DailyInventory.objects.filter(date=get_date(request))):
         current_inventory = DailyInventory.objects.filter(date=get_date(request))
     else:
-        return HttpResponse("L'inventaire pour le jour choisi n'existe pas ou a été supprimé.")
+        return render(request, 'izouapp/error_template.html', context={'error':"L'inventaire pour le jour choisi n'existe pas ou a été supprimé"})
 
     user = request.user
 
@@ -297,7 +296,7 @@ def edit_order_directly(request, client_to_edit, order_to_edit, id_deliveryman, 
                     deliv_man = DeliveryPerson.objects.filter(id_deliveryman=id_deliveryman).first()
 
             else:
-                return HttpResponse('Un des livreurs a été supprimé de la base de données.')
+                return render(request, 'izouapp/error_template.html', context={'error':'Un des livreurs a été supprimé de la base de données.'})
 
             client.update(name=client_name, phone_number=client_number, adress=client_adress)
 
@@ -312,7 +311,7 @@ def edit_order_directly(request, client_to_edit, order_to_edit, id_deliveryman, 
             obj_first.client = client.first()
             obj_first.deliveryPrice = price_delivery
 
-            pizzas = split_html_and_get_pizzas(html_list_order, pizzas_count_sold=None, edit=True,
+            pizzas = split_html_and_get_pizzas(request,html_list_order, pizzas_count_sold=None, edit=True,
                                                finalOrderStatus=order_status, firstOrderStatus=initial_status)
 
         else:
@@ -323,7 +322,7 @@ def edit_order_directly(request, client_to_edit, order_to_edit, id_deliveryman, 
             obj_first.status = order_status if order_status else 'on-site'
             obj_first.client = client.first()
 
-            pizzas = split_html_and_get_pizzas(html_list_order, pizzas_count_sold=None, edit=True,
+            pizzas = split_html_and_get_pizzas(request,html_list_order, pizzas_count_sold=None, edit=True,
                                                finalOrderStatus=order_status, firstOrderStatus=initial_status)
 
         obj_first.pizzas.add(*tuple(pizzas))
@@ -376,7 +375,7 @@ def edit_order(request):  # modifie simplement le dictionnaire data.json et la c
                     deliv_man = DeliveryPerson.objects.filter(id_deliveryman=id_deliveryman).first()
 
             else:
-                return HttpResponse('Un des livreurs a été supprimé de la base de données.')
+                return render(request, 'izouapp/error_template.html', context={'error':'Un des livreurs a été supprimé de la base de données'})
 
             payment_method_order_from_order_to_deliver = request.POST.get('payment_method_order_from_order_to_deliver')
             payment_method_delivery_from_order_to_deliver = request.POST.get('payment_method_delivery_from_order_to_deliver')
@@ -404,14 +403,14 @@ def edit_order(request):  # modifie simplement le dictionnaire data.json et la c
         if order.first():
             obj_first = order.first()
         else:
-            return HttpResponse("Cette commande n'existe pas ou a été supprimée.")
+            return render(request, 'izouapp/error_template.html', context={'error':"Cette commande n'existe pas ou a été supprimée"})
 
         initial_status = obj_first.status
 
         if len(DailyInventory.objects.filter(date=get_date(request))):
             current_inventory = DailyInventory.objects.filter(date=get_date(request))
         else:
-            return HttpResponse("L'inventaire pour le jour choisi n'existe pas ou a été supprimé.")
+            return render(request, 'izouapp/error_template.html', context={'error':"L'inventaire pour le jour choisi n'existe pas ou a été supprimé"})
 
         user = request.user
 
@@ -421,7 +420,7 @@ def edit_order(request):  # modifie simplement le dictionnaire data.json et la c
 
             if order_type == 'to-deliver':
 
-                pizzas = split_html_and_get_pizzas(html_list_order, pizzas_count_sold=None, edit=True,
+                pizzas = split_html_and_get_pizzas(request,html_list_order, pizzas_count_sold=None, edit=True,
                                                    firstOrderStatus=initial_status, finalOrderStatus=order_status)
 
                 client.update(name=client_name, phone_number=client_number, adress=client_adress)
@@ -437,7 +436,7 @@ def edit_order(request):  # modifie simplement le dictionnaire data.json et la c
                 obj_first.deliveryPrice = price_delivery
 
             else:
-                pizzas = split_html_and_get_pizzas(html_list_order, pizzas_count_sold=None, edit=True,
+                pizzas = split_html_and_get_pizzas(request,html_list_order, pizzas_count_sold=None, edit=True,
                                                    firstOrderStatus=initial_status, finalOrderStatus=order_status)
 
                 client.update(name=client_name)
@@ -512,10 +511,8 @@ def edit_order(request):  # modifie simplement le dictionnaire data.json et la c
     return redirect(reverse('home'))
 
 
-def send_email():
+def send_email(request):
 
-    get_most_and_least_sold_pizza_names("week")
-    get_chart_imgs_datas("week")
     today = datetime.now()
     reminder = SendMailReminder.objects.all()
 
@@ -525,8 +522,7 @@ def send_email():
         reminder_first = reminder.first()
 
 
-    if today.weekday() == 1 and not reminder_first.weekly_digest_sent:  # un Lundi
-        print("Envoie d'un mail pour la periode: week")
+    if today.weekday() == 0 and not reminder_first.weekly_digest_sent:  # un Lundi
         superusers = Manager_or_Admin.objects.filter(is_superuser=True)
         user = None
         try:
@@ -540,7 +536,7 @@ def send_email():
             reminder_first.weekly_digest_sent = True
             reminder_first.save()
 
-    elif today.day == 7 and not reminder_first.monthly_digest_sent:  # Premier jour du mois
+    elif today.day == 1 and not reminder_first.monthly_digest_sent:  # Premier jour du mois
         print("Envoie d'un mail pour la periode: month")
         superusers = Manager_or_Admin.objects.filter(is_superuser=True)
         user = None
@@ -550,6 +546,7 @@ def send_email():
                     send_period_digest(period="month", to_email=user.email, subject="Votre digest mensuel.")
         except Exception as e:
             print(f"Erreur lors de l'envoi de l'email à {user.email} : {e}")
+            traceback.print_exc()
         finally:
             reminder_first.monthly_digest_sent = True
             reminder_first.save()
@@ -559,17 +556,16 @@ def send_email():
         reminder_first.monthly_digest_sent = False
         reminder_first.save()
 
-    return HttpResponse('Email envoye avec succes')
+    return render(request, 'izouapp/error_template.html', context={'error':'Email envoye avec succes'})
 
 
 @login_required
 def home(request):  # quand l'utilisateur atterit sur la page pour la premiere fois
 
-    send_email()
-    get_datas_to_chart_directly(request_=request,days_=30)
-    datas_to_json(request)
 
-    return fetching_datas(request, filter_=None, date_to_print=now().date().isoformat())
+    send_email(request)
+    get_datas_to_chart_directly(request)
+    return fetching_datas(request, filter_=None, date_to_print=request.session.get('date_selected', now().date().isoformat()))
 
 
 def fetching_datas(request, filter_, date_to_print):
@@ -786,11 +782,14 @@ def get_summary_of_one_delivery_man(request):
     total_20_percent_delivery_in_cfa = 0
     if request.method == 'POST':
         person = request.POST.get('selectDeliveryMan')
-        date = datetime.strptime(request.POST.get('selectDate'),"%Y-%m-%d").date()
+        try:
+            date = datetime.strptime(request.POST.get('selectDate'),"%Y-%m-%d").date()
+        except ValueError:
+            return HttpResponseRedirect(request.path)
 
         if person != 'none':
             deliverPerson = DeliveryPerson.objects.filter(name=person)
-            list_orders = orders.objects.filter(deliveryPerson=deliverPerson, create_at=date, status='delivered')
+            list_orders = orders.objects.filter(deliveryPerson=deliverPerson.first(), create_at=date, status='delivered')
             for order in list_orders:
                 pizza_names = ", ".join(
                     [" - ".join([pizza.moitie_1, pizza.moitie_2]) if pizza.status == 'Spéciale' else pizza.name for pizza in order.pizzas.all()])
@@ -798,8 +797,8 @@ def get_summary_of_one_delivery_man(request):
                                    'd':order.pizza_and_extratopping_price if order.payment_method_order=='delivered_man' else 0,
                                    'e': order.deliveryPrice if order.payment_method_delivery=='delivered_man' else 0,
                                    'f': order.deliveryHour})
-                total_orders_in_cfa += order.total_price
-                total_delivery_in_cfa += order.deliveryPrice
+                total_orders_in_cfa += order.pizza_and_extratopping_price if order.payment_method_order=='delivered_man' else 0
+                total_delivery_in_cfa += order.deliveryPrice if order.payment_method_delivery=='delivered_man' else 0
             context['his_orders'] = his_orders
             context['total_orders_in_cfa'] = total_orders_in_cfa
             context['total_delivery_in_cfa'] = total_delivery_in_cfa
@@ -821,7 +820,6 @@ def delivery_men_board(request):
 @login_required
 def add_order(request):
     if request.method == 'POST':
-
         try:
             with open(file_path, 'r') as file:
                 content = json.load(file)
@@ -849,7 +847,7 @@ def add_order(request):
                     order_html = request.POST.get(
                         'hidden-textarea-from-order-on-delivery1')  # bloc html de toutes les pizzas
 
-                    pizzas, pizzas_count_sold = split_html_and_get_pizzas(html=order_html,
+                    pizzas, pizzas_count_sold = split_html_and_get_pizzas(request,html=order_html,
                                                                           pizzas_count_sold=pizzas_count_sold,
                                                                           firstOrderStatus='delivered',
                                                                           finalOrderStatus='delivered')  # noms des pizzas commandées + inventaire des pizzas vendues mis à jour
@@ -865,21 +863,20 @@ def add_order(request):
                             "Le prix de la livraison doit être un entier. Veuillez tout autre caractère qui n'est pas un nombre, y compris les espaces.")
                     else:
                         order = orders.objects.create(  # création d'une nouvelle commande
-                            create_at=date.fromisoformat(request.session['date_selected']),
-                            deliveryHour=infos_client['heure_livraison'],
-                            deliveryAdress=infos_client['adresse'],
-                            payment_method_order=infos_client['methode_payement_order'],
-                            payment_method_delivery = infos_client['methode_payement_delivery'],
-                            deliveryPerson=DeliveryPerson.objects.filter(name=infos_client['livreur'])[0],
-                            client=client,
-                            deliveryPrice=infos_client['prix_livraison'],
+                            create_at=date.fromisoformat(request.session['date_selected']), # [date]
+                            deliveryHour=infos_client['heure_livraison'], # [heure]
+                            deliveryAdress=infos_client['adresse'], # [adresse]
+                            payment_method_order=infos_client['methode_payement_order'], # [izoua, delivered_man]
+                            payment_method_delivery = infos_client['methode_payement_delivery'], # [izoua, delivered_man]
+                            deliveryPerson=DeliveryPerson.objects.filter(name=infos_client['livreur'])[0], # [1,2]
+                            client=client, # [1,77]
+                            deliveryPrice=infos_client['prix_livraison'], # [1000-5000]
                         )
 
                         order.pizzas.add(*tuple(pizzas))  # ajout des pizzas dans la commande
 
                         current_inventory.update(sold_small_pizzas_count=pizzas_count_sold['Petite'],
-                                                 sold_large_pizzas_count=pizzas_count_sold[
-                                                     'Grande'])  # mise à jour de l'inventaire
+                                                 sold_large_pizzas_count=pizzas_count_sold['Grande'])  # mise à jour de l'inventaire
 
                         content['orderToHtml'].append({'order_id': order.order_id,
                                                        'client_infos': {'name': infos_client['name'],
@@ -899,7 +896,7 @@ def add_order(request):
                     infos_client = {'name_onsite': request.POST.get('client_name')}
                     order_html = request.POST.get('hidden-textarea-from-order-on-site1')
 
-                    pizzas, pizzas_count_sold = split_html_and_get_pizzas(html=order_html,
+                    pizzas, pizzas_count_sold = split_html_and_get_pizzas(request,html=order_html,
                                                                           pizzas_count_sold=pizzas_count_sold,
                                                                           firstOrderStatus='delivered',
                                                                           finalOrderStatus='delivered')
@@ -926,7 +923,7 @@ def add_order(request):
                 json.dump(content, file)
 
         except ValueError:
-            return HttpResponse("Veuillez saisir des données valides.")
+            return render(request, 'izouapp/error_template.html', context={'error':'Veuillez saisir des données valides'})
 
         finally:
             return fetching_datas(request, filter_=date.fromisoformat(request.session['date_selected']),
@@ -935,10 +932,10 @@ def add_order(request):
     return redirect(reverse('home'))
 
 
-def get_date(
-        request):  # fonction qui retourne la date si elle est enregistrée dans la session sinon elle retourne la date actuelle
+def get_date(request):  # fonction qui retourne la date si elle est enregistrée dans la session sinon elle retourne la date actuelle
     if request.session.get('date_selected', None):
         return date.fromisoformat(request.session.get('date_selected'))
+    request.session['date_selected'] = now().date().isoformat()
     return now().date().isoformat()
 
 
@@ -955,7 +952,7 @@ def datas_to_json(request):  # à revoir au cas où les requetes renvoient des t
 
     #date_ = datetime.strptime(request.session.get('date_selected'),'%Y-%m-%d')
     #date_to_check = date_.strftime('%d/%m/%Y')
-    date_to_check = request.session.get('date_selected')
+    date_to_check = request.session.get('date_selected', now().date().isoformat())
 
     if len(pizza_names) == 0 or len(prices) == 0:
         pizza_ = []
@@ -1026,41 +1023,43 @@ def download_excel(request):
         try:
             first_period = request.POST.get('first_period')
             second_period = request.POST.get('second_period')
-            create_excel_with_data('izoua.xlsx')
+            create_excel_with_data(first_period=first_period,second_period=second_period,file_name='izoua.xlsx')
 
             # Chemin absolu du fichier Excel généré
             file_path = os.path.join(settings.MEDIA_ROOT, 'reports', 'izoua.xlsx')
 
             # Vérifier si le fichier existe
             if not os.path.exists(file_path):
-                return HttpResponse('Fichier non trouvé', status=404)
+                return render(request, 'izouapp/error_template.html', context={'error':'Fichier non trouvé'})
 
             # Ouvrir le fichier en mode binaire
             with open(file_path, 'rb') as file:
                 response = HttpResponse(file, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
                 response['Content-Disposition'] = 'attachment; filename="commandes.xlsx"'
                 return response
-        except ValueError:
-            return HttpResponse("Veuillez saisir des dates valides")
+        except Exception as e:
+            return render(request, 'izouapp/error_template.html', context={'error':'Veuillez saisir des dates valides'})
 
     return redirect(reverse('home'))
 
 
-def get_datas_to_chart_directly(request_=dict(), days_=30):
-    delay_value = request_.POST.get('delayChart')
-    delay = int(delay_value) if delay_value is not None else -1
-    if not delay or delay<0:
-        delay = days_
+def get_datas_to_chart_directly(request):
+    days_ = int(request.GET.get('delayChart', 30))
+    if days_<=0:
+        delay = 30
+    else:
+        delay=days_
     datas = dict()
     days = []
     sold = []
     unsold = []
 
+    start = request.session.get('date_selected', now().date().isoformat())
+
     for i in range(delay):
-        daily_inventory = DailyInventory.objects.filter(
-            date=date.fromisoformat(request_.session['date_selected']) - timedelta(i)).first()
+        daily_inventory = DailyInventory.objects.filter(date=date.fromisoformat(start) - timedelta(i)).first()
         if daily_inventory:
-            date_to_format = date.fromisoformat(request_.session['date_selected']) - timedelta(i)
+            date_to_format = date.fromisoformat(start) - timedelta(i)
             date_formatee_fr = date_to_format.strftime("%d/%m/%Y")
             days.append(date_formatee_fr)
             sold.append(daily_inventory.sold)
@@ -1080,12 +1079,13 @@ def get_datas_to_chart_directly(request_=dict(), days_=30):
     with open(file_path, 'w') as file:
         json.dump(content, file)
 
-    return redirect(reverse('home'))
+    datas_to_json(request)
+
 
 @login_required
 def get_datas_to_chart(request):
-    get_datas_to_chart_directly(request_=request)
-    return redirect(reverse('home'))
+    get_datas_to_chart_directly(request)
+    return fetching_datas(request, filter_=None, date_to_print=now().date().isoformat())
 
 
 

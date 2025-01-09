@@ -9,7 +9,9 @@ from izouapp.models import orders, DeliveryPerson, Pizza
 from izouaproject import settings
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-
+import matplotlib
+matplotlib.use('Agg')
+import seaborn as sns
 
 img_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'izouapp', 'images','img_gen_from_charts')# chemin où seront stocké les fichiers img
 
@@ -314,6 +316,7 @@ def get_most_and_least_sold_pizza_names(period) -> dict:
         # Obtenir le dernier jour du mois d'avant
         before_period_end = datetime(year, month2,calendar.monthrange(year, month2)[1])
 
+
     # Ventes de pizzas de la periode dernière
     previous_period_pizzas = Pizza.objects.filter(create_at__gte=previous_period_start, create_at__lte=previous_period_end)
 
@@ -328,9 +331,7 @@ def get_most_and_least_sold_pizza_names(period) -> dict:
         previous_period_list = {name: count for name, count in previous_period_sales.items()}
 
     # Ventes de pizzas de la periode d'avant
-    period_before_pizzas = Pizza.objects.filter(
-        create_at__gte=before_period_start, create_at__lte=before_period_end
-    )
+    period_before_pizzas = Pizza.objects.filter(create_at__gte=before_period_start, create_at__lte=before_period_end)
 
     if len(period_before_pizzas) == 0:
         period_before_list = None
@@ -448,39 +449,40 @@ def plot_empty_polar(file_name, fig,ax):
 
 
 
-def generate_2x_polar(datalist, filename='Total pizzas vendues.pdf'):
+def generate_2x_charts(datalist, filename='Total pizzas vendues.pdf'):
 
+    if datalist[0]:
+        data1 = datalist[0][0]
+    else:
+        data1 = pd.DataFrame()
 
-    data1 = datalist[0]
-    data2 = datalist[1]
+    if datalist[1]:
+        data2 = datalist[1][0]
+    else:
+        data2 = pd.DataFrame()
 
 
     # Créer une figure avec deux sous-graphiques polaires côte à côte
-    fig, axes = plt.subplots(1, 2, figsize=(12, 6), subplot_kw={'projection': 'polar'})
+    fig, axes = plt.subplots(2, 1, figsize=(12, 18))
 
-    if not data1 and not data2:
-        categories = []
+    if data1.empty and data2.empty:
+        """categories = []
         values = []
+        empty = pd.DataFrame({'Pizzas':categories, 'Ventes':values})
         try:
+
             ax1 = axes[0]
-            angles = np.linspace(0, 2 * np.pi, len(categories), endpoint=False).tolist()
-            values += values[:1]  # Répéter la première valeur pour fermer le graphique
-            angles += angles[:1]
-            ax1.fill(angles, values, color='blue', alpha=0.25)
-            ax1.plot(angles, values, color='blue', linewidth=2)
-            ax1.set_xticks(angles[:-1])
-            ax1.set_xticklabels(categories)
-            ax1.set_title("Aucune vente enregistrée pour la période précédente", fontsize=14)
+            sns.barplot(legend=False, ax=ax1, x='Pizzas', y='Ventes', data=empty, ci=None)
+            ax1.title(datalist[0][1])
+            ax1.xlabel("Pizzas")
+            ax1.ylabel("Ventes")
+
 
             ax2 = axes[1]
-            angles = np.linspace(0, 2 * np.pi, len(categories), endpoint=False).tolist()
-            values += values[:1]  # Répéter la première valeur pour fermer le graphique
-            angles += angles[:1]
-            ax2.fill(angles, values, color='blue', alpha=0.25)
-            ax2.plot(angles, values, color='blue', linewidth=2)
-            ax2.set_xticks(angles[:-1])
-            ax2.set_xticklabels(categories)
-            ax2.set_title("Aucune vente enregistrée pour la période d'avant", fontsize=14)
+            sns.barplot(legend=False, ax=ax2, x='Pizzas', y='Ventes', data=empty, ci=None)
+            ax2.title(datalist[1][1])
+            ax2.xlabel("Pizzas")
+            ax2.ylabel("Ventes")
 
 
         except Exception as e:
@@ -491,108 +493,74 @@ def generate_2x_polar(datalist, filename='Total pizzas vendues.pdf'):
             plt.tight_layout()
 
             # Sauvegarde dans un fichier PDF
-            plt.savefig(os.path.join(img_path, filename), dpi=300, bbox_inches="tight")
+            with PdfPages(os.path.join(img_path, filename)) as pdf:
+                pdf.savefig(fig)  # Sauvegarde la figure
+                plt.close(fig)
 
-            return os.path.join(img_path, filename)
+            return os.path.join(img_path, filename)"""
 
-    elif not data1:
-        categories = []
-        values = []
-        try:
-            ax1 = axes[0]
-            angles = np.linspace(0, 2 * np.pi, len(categories), endpoint=False).tolist()
-            values += values[:1]  # Répéter la première valeur pour fermer le graphique
-            angles += angles[:1]
-            ax1.fill(angles, values, color='blue', alpha=0.25)
-            ax1.plot(angles, values, color='blue', linewidth=2)
-            ax1.set_xticks(angles[:-1])
-            ax1.set_xticklabels(categories)
-            ax1.set_title("Aucune vente enregistrée pour la période précédente", fontsize=14)
+        return None
 
-            # Deuxième graphique polaire
-            ax2 = axes[1]
-            theta2 = np.linspace(0, 2 * np.pi, len(data2[0]), endpoint=False)
-            ax2.set_theta_offset(np.pi / 2)  # Début du graphique à la verticale
-            ax2.set_theta_direction(-1)  # Sens des aiguilles d'une montre
-            ax2.bar(theta2, data2[1], width=0.3, bottom=0.0, color='tomato', alpha=0.6)
-            ax2.set_xticks(theta2)
-            ax2.set_xticklabels(data2[0], fontsize=12)
-            ax2.set_title(data2[2], fontsize=14)
+    elif data1.empty:
 
-        except Exception as e:
-            print(f"Erreur : {e}")
+        norm2 = plt.Normalize(data2['Ventes'].min(), data2['Ventes'].max())
+        colors2 = plt.cm.coolwarm(norm2(data2['Ventes']))
+        sns.barplot(legend=False, x='Ventes', y='Pizzas', data=data2, errorbar=None, palette=colors2.tolist(), orient='h')
 
-        finally:
-            # Ajuster l'espacement
-            plt.tight_layout()
+        # Ajouter des titres et des étiquettes
+        plt.title(datalist[1][1])
+        plt.ylabel("Pizzas")
+        plt.xlabel("Ventes")
 
-            # Sauvegarde dans un fichier PDF
-            plt.savefig(os.path.join(img_path, filename), dpi=300, bbox_inches="tight")
+        # Enregistrer le graphique dans un fichier PDF
+        plt.savefig(os.path.join(img_path, filename), format="pdf")
 
-            return os.path.join(img_path, filename)
+        return os.path.join(img_path, filename)
 
-    elif not data2:
-        categories = []
-        values = []
+    elif data2.empty:
 
-        try:
-            ax1 = axes[0]
-            theta1 = np.linspace(0, 2 * np.pi, len(data1[0]), endpoint=False)
-            ax1.set_theta_offset(np.pi / 2)  # Début du graphique à la verticale
-            ax1.set_theta_direction(-1)  # Sens des aiguilles d'une montre
-            ax1.bar(theta1, data1[1], width=0.3, bottom=0.0, color='cornflowerblue', alpha=0.6)
-            ax1.set_xticks(theta1)
-            ax1.set_xticklabels(data1[0], fontsize=12)
-            ax1.set_title(data1[2], fontsize=14)
+        norm1 = plt.Normalize(data1['Ventes'].min(), data1['Ventes'].max())
+        colors1 = plt.cm.coolwarm(norm1(data1['Ventes']))
+        sns.barplot(legend=False, x='Ventes', y='Pizzas', data=data1, errorbar=None, palette=colors1.tolist(), orient='h')
 
-            ax2 = axes[1]
-            angles = np.linspace(0, 2 * np.pi, len(categories), endpoint=False).tolist()
-            values += values[:1]  # Répéter la première valeur pour fermer le graphique
-            angles += angles[:1]
-            ax2.fill(angles, values, color='blue', alpha=0.25)
-            ax2.plot(angles, values, color='blue', linewidth=2)
-            ax2.set_xticks(angles[:-1])
-            ax2.set_xticklabels(categories)
-            ax2.set_title("Aucune vente enregistrée pour la période d'avant", fontsize=14)
+        # Ajouter des titres et des étiquettes
+        plt.title(datalist[0][1])
+        plt.ylabel("Pizzas")
+        plt.xlabel("Ventes")
 
-        except Exception as e:
-            print(f"Erreur : {e}")
+        # Enregistrer le graphique dans un fichier PDF
+        plt.savefig(os.path.join(img_path, filename), format="pdf")
 
-        finally:
-            # Ajuster l'espacement
-            plt.tight_layout()
-
-            # Sauvegarde dans un fichier PDF
-            plt.savefig(os.path.join(img_path, filename), dpi=300, bbox_inches="tight")
-
-            return os.path.join(img_path, filename)
+        return os.path.join(img_path, filename)
 
     else:
-        # Premier graphique polaire
+        norm1 = plt.Normalize(data1['Ventes'].min(), data1['Ventes'].max())
+        colors1 = plt.cm.coolwarm(norm1(data1['Ventes']))
+
         ax1 = axes[0]
-        theta1 = np.linspace(0, 2 * np.pi, len(data1[0]), endpoint=False)
-        ax1.set_theta_offset(np.pi / 2)  # Début du graphique à la verticale
-        ax1.set_theta_direction(-1)  # Sens des aiguilles d'une montre
-        ax1.bar(theta1, data1[1], width=0.3, bottom=0.0, color='cornflowerblue', alpha=0.6)
-        ax1.set_xticks(theta1)
-        ax1.set_xticklabels(data1[0], fontsize=12)
-        ax1.set_title(data1[2], fontsize=14)
+        sns.barplot(legend=False, ax=ax1, x='Ventes', y='Pizzas', data=data1, errorbar=None, palette=colors1.tolist(), orient='h')
+        ax1.title(datalist[0][1])
+        ax1.ylabel("Pizzas")
+        ax1.xlabel("Ventes")
+
+        norm2 = plt.Normalize(data2['Ventes'].min(), data2['Ventes'].max())
+        colors2 = plt.cm.coolwarm(norm2(data2['Ventes']))
 
         # Deuxième graphique polaire
         ax2 = axes[1]
-        theta2 = np.linspace(0, 2 * np.pi, len(data2[0]), endpoint=False)
-        ax2.set_theta_offset(np.pi / 2)  # Début du graphique à la verticale
-        ax2.set_theta_direction(-1)  # Sens des aiguilles d'une montre
-        ax2.bar(theta2, data2[1], width=0.3, bottom=0.0, color='tomato', alpha=0.6)
-        ax2.set_xticks(theta2)
-        ax2.set_xticklabels(data2[0], fontsize=12)
-        ax2.set_title(data2[2], fontsize=14)
+        sns.barplot(legend=False, ax=ax2, x='Ventes', y='Pizzas', data=data2, errorbar=None, palette=colors2.tolist(), orient='h')
+        ax2.title(datalist[1][1])
+        ax1.ylabel("Pizzas")
+        ax1.xlabel("Ventes")
+
 
         # Ajuster l'espacement
         plt.tight_layout()
 
         # Sauvegarde dans un fichier PDF
-        plt.savefig(os.path.join(img_path,filename), dpi=300, bbox_inches="tight")
+        with PdfPages(os.path.join(img_path, filename)) as pdf:
+            pdf.savefig(fig)  # Sauvegarde la figure
+            plt.close(fig)
 
         return os.path.join(img_path,filename)
 
@@ -600,7 +568,7 @@ def generate_2x_polar(datalist, filename='Total pizzas vendues.pdf'):
 def generate_4x_charts(datasets, file_name="total commandes et chiffres d'affaire.pdf"):
 
     # Configuration de la grille
-    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+    fig, axes = plt.subplots(2, 2, figsize=(18, 18))
     axes = axes.flatten()
 
     for i, data in enumerate(datasets):

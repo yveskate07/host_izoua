@@ -1,12 +1,16 @@
 import os
 import smtplib
+import calendar
+from datetime import date, timedelta, datetime
 from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+
+import pandas as pd
 from environ import environ
 from izouapp.datas_to_export import get_periodicaly_orders_info, \
-    get_periodicaly_orders_by_type, get_most_and_least_sold_pizza_names, generate_2x_polar, generate_4x_charts
+    get_periodicaly_orders_by_type, get_most_and_least_sold_pizza_names, generate_2x_charts, generate_4x_charts
 from izouapp.views import create_excel_with_data
 from izouaproject.settings import BASE_DIR
 
@@ -45,12 +49,12 @@ def get_chart_imgs_datas(period):
     data4 = [{'Catégorie':[last_period_str, before_period_str],'dataset1':[orders_type['on_site_orders_info']['last_period_turnover'], orders_type['on_site_orders_info']['period_before_turnover']],'dataset2':[orders_type['delivery_orders_info']['last_period_turnover'], orders_type['delivery_orders_info']['period_before_turnover']]}, None, "Chiffres d'affaires", 'Sur place','Livrées',title4]
 
     try:
-        data5=[list(pizzas_count_sold['previous_period'].keys()),list(pizzas_count_sold['previous_period'].values()),title5]
+        data5=[pd.DataFrame({"Pizzas":list(pizzas_count_sold['previous_period'].keys()), 'Ventes': list(pizzas_count_sold['previous_period'].values())}),title5]
     except Exception as e:
         data5=None
 
     try:
-        data6=[list(pizzas_count_sold['before_period'].keys()),list(pizzas_count_sold['before_period'].values()),title6]
+        data6 = [pd.DataFrame({"Pizzas": [list(pizzas_count_sold['before_period'].keys())],'Ventes': list(pizzas_count_sold['before_period'].values())}), title6]
     except Exception as e:
         data6=None
 
@@ -58,10 +62,40 @@ def get_chart_imgs_datas(period):
 
 
 def get_all_paths(period):
+
+    today = date.today()
+
+    if period == "week":
+        # Calcul des périodes
+        previous_period_start = today - timedelta(days=today.weekday() + 7)
+        previous_period_end = previous_period_start + timedelta(days=6)
+
+        before_period_start = previous_period_start - timedelta(days=7)
+        before_period_end = before_period_start + timedelta(days=6)
+
+    else:
+        month1 = 12 if today.month - 1 == 0 else today.month - 1 # le mois précedent 1,2,...,12
+        month2 = month1 - 1 # le mois d'avant 1,2,...,12
+        year = today.year-1 if today.month - 1 == 0 else today.year # l'année actuelle
+
+        # Obtenir le premier jour du mois précédent
+        previous_period_start = datetime(year, month1, 1)
+
+        # Obtenir le dernier jour du mois précédent
+        previous_period_end = datetime(year, month1,
+                                           calendar.monthrange(year, month1)[1])
+
+        # Obtenir le premier jour du mois d'avant
+        before_period_start = datetime(year, month2, 1)
+
+        # Obtenir le dernier jour du mois d'avant
+        before_period_end = datetime(year, month2,
+                                           calendar.monthrange(year, month2)[1])
+
     datas = get_chart_imgs_datas(period)
-    file1 = generate_2x_polar(datas[1])
+    file1 = generate_2x_charts(datas[1])
     file2 = generate_4x_charts(datas[0])
-    file3 = create_excel_with_data('rapport.xlsx')
+    file3 = create_excel_with_data('rapport.xlsx', first_period=previous_period_start, second_period=previous_period_end)
 
     return file1, file2, file3
 
@@ -98,6 +132,9 @@ def send_period_digest(period, to_email, subject):
     message.attach(html_part)
 
     files_paths = get_all_paths(period)
+    if files_paths[0]==None:
+        files_paths = files_paths[1:]
+
 
     """if not os.path.exists(pdf_path):
         pdf_path.parent.mkdir(parents=True, exist_ok=True)"""
