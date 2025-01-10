@@ -26,9 +26,9 @@ locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(script_dir)
-file_path = os.path.join(parent_dir, 'staticfiles', 'izouapp', 'data.json') # pour lea production
+#file_path = os.path.join(parent_dir, 'staticfiles', 'izouapp', 'data.json') # pour lea production
 
-#file_path = os.path.join(script_dir, 'static', 'izouapp', 'data.json')
+file_path = os.path.join(script_dir, 'static', 'izouapp', 'data.json')
 
 
 # Create your views here.
