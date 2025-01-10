@@ -36,8 +36,8 @@ file_path = os.path.join(script_dir, 'static', 'izouapp', 'data.json')
 def add_inventory(request):  # fonction qui cree et ajoute un nouvel inventaire dans la bd
     if request.method == "POST":
         try:
-            date = datetime.strptime(request.POST.get('addDate'), "%Y-%m-%d").date()
-            if date != date.fromisoformat(request.session['date_selected']):
+            date_ = datetime.strptime(request.POST.get('addDate'), "%Y-%m-%d").date()
+            if date_ != date.fromisoformat(request.session['date_selected']):
                 return render(request, 'izouapp/error_template.html', context={'error':"La date de l'inventaire ne peut pas être différente de la date sélectionnée !"})
             grande = int(request.POST.get('addGrande'))
 
@@ -47,18 +47,21 @@ def add_inventory(request):  # fonction qui cree et ajoute un nouvel inventaire 
             if mini<0:
                 return render(request, 'izouapp/error_template.html', context={'error':"Le nombre de petites pizzas ne peut pas être inférieur à zéro !"})
 
-            DailyInventory.objects.create(small_pizzas_count=mini, large_pizzas_count=grande, date=date)
+            DailyInventory.objects.create(small_pizzas_count=mini, large_pizzas_count=grande, date=date_)
 
 
         except ValueError:
             return render(request, 'izouapp/error_template.html', context={'error':"Entrez des données valides s'il vous plaît !!"})
 
         finally:
-            return fetching_datas(request, filter_=date,
-                                  date_to_print=datetime.strptime(request.POST.get('addDate'),
-                                                                  "%Y-%m-%d").date().isoformat())
+            request.session['date_selected'] = date_.isoformat()
+            request.session['from_add_inventory'] = True
+            request.session['date_to_print'] = datetime.strptime(request.POST.get('addDate'), "%Y-%m-%d").date().isoformat()
 
-    return HttpResponseRedirect(request.path)
+            return redirect(reverse('home'))
+
+
+    return redirect(reverse('home'))
 
 
 class IzouaLoginView(LoginView):
@@ -565,7 +568,11 @@ def home(request):  # quand l'utilisateur atterit sur la page pour la premiere f
 
     send_email(request)
     get_datas_to_chart_directly(request)
-    return fetching_datas(request, filter_=None, date_to_print=request.session.get('date_selected', now().date().isoformat()))
+    if request.session.get('from_add_inventory',None):
+        return fetching_datas(request, filter_=date.fromisoformat(request.session.get('date_selected', None)),
+                              date_to_print=request.session.get('date_to_print', now().date().isoformat()))
+
+    return fetching_datas(request, filter_=date.fromisoformat(request.session.get('date_selected', None)), date_to_print=request.session.get('date_selected', now().date().isoformat()))
 
 
 def fetching_datas(request, filter_, date_to_print):
@@ -802,7 +809,7 @@ def get_summary_of_one_delivery_man(request):
             context['his_orders'] = his_orders
             context['total_orders_in_cfa'] = total_orders_in_cfa
             context['total_delivery_in_cfa'] = total_delivery_in_cfa
-            context['total_20_percent_delivery_in_cfa'] = 0.2*total_orders_in_cfa
+            context['total_20_percent_delivery_in_cfa'] = 0.2*total_delivery_in_cfa
 
 
     context['delivery_men'] = get_delivery_men()
@@ -926,8 +933,9 @@ def add_order(request):
             return render(request, 'izouapp/error_template.html', context={'error':'Veuillez saisir des données valides'})
 
         finally:
-            return fetching_datas(request, filter_=date.fromisoformat(request.session['date_selected']),
-                                  date_to_print=request.session['date_selected'])
+            """return fetching_datas(request, filter_=date.fromisoformat(request.session['date_selected']),
+                                  date_to_print=request.session['date_selected'])"""
+            return redirect(reverse('home'))
 
     return redirect(reverse('home'))
 
