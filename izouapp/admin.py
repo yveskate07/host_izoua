@@ -30,7 +30,7 @@ class PizzaNameAdmin(admin.ModelAdmin):
         'name',
     )
 
-@admin.register(SendMailReminder)
+#@admin.register(SendMailReminder)
 class SendMailReminderAdmin(admin.ModelAdmin):
     fields = ('weekly_digest_sent',
         'monthly_digest_sent',)
@@ -125,7 +125,7 @@ class ClientAdmin(admin.ModelAdmin):
         'adress',
     )
 
-@admin.register(Pizza)
+#@admin.register(Pizza)
 class PizzaAdmin(admin.ModelAdmin):
     readonly_fields = ('description',)
     list_display = (

@@ -26,7 +26,7 @@ locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(script_dir)
-file_path = os.path.join(parent_dir, 'staticfiles', 'izouapp', 'data.json') # pour lea production
+file_path = os.path.join(parent_dir, 'staticfiles', 'izouapp', 'data.json') # pour la production
 
 #file_path = os.path.join(script_dir, 'static', 'izouapp', 'data.json')
 
@@ -802,7 +802,7 @@ def get_summary_of_one_delivery_man(request):
             context['his_orders'] = his_orders
             context['total_orders_in_cfa'] = total_orders_in_cfa
             context['total_delivery_in_cfa'] = total_delivery_in_cfa
-            context['total_20_percent_delivery_in_cfa'] = 0.2*total_20_percent_delivery_in_cfa
+            context['total_20_percent_delivery_in_cfa'] = 0.2*total_delivery_in_cfa
 
 
     context['delivery_men'] = get_delivery_men()
@@ -851,6 +851,12 @@ def add_order(request):
                                                                           pizzas_count_sold=pizzas_count_sold,
                                                                           firstOrderStatus='delivered',
                                                                           finalOrderStatus='delivered')  # noms des pizzas commandées + inventaire des pizzas vendues mis à jour
+                    """if pizzas_count_sold['Grande'] > current_inventory.large_pizzas_count:
+                        return render(request, 'izouapp/error_template.html', context={'error':"Vous ne pouvez plus ajouter de grandes pizzas !"})
+
+                    elif pizzas_count_sold['Petite'] > current_inventory.small_pizzas_count:
+                        return render(request, 'izouapp/error_template.html', context={'error':"Vous ne pouvez plus ajouter de petites pizzas !"})"""
+
                     client = Client.objects.create(  # création d'un nouveau client
                         name=infos_client['name'],
                         phone_number=infos_client['numero'],
@@ -900,6 +906,12 @@ def add_order(request):
                                                                           pizzas_count_sold=pizzas_count_sold,
                                                                           firstOrderStatus='delivered',
                                                                           finalOrderStatus='delivered')
+
+                    """if pizzas_count_sold['Grande'] > current_inventory.large_pizzas_count:
+                        return render(request, 'izouapp/error_template.html', context={'error':"Vous ne pouvez plus ajouter de grandes pizzas !"})
+
+                    elif pizzas_count_sold['Petite'] > current_inventory.small_pizzas_count:
+                        return render(request, 'izouapp/error_template.html', context={'error':"Vous ne pouvez plus ajouter de petites pizzas !"})"""
 
                     client = Client.objects.create(
                         name=infos_client['name_onsite'])

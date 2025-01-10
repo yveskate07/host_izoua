@@ -118,13 +118,14 @@ class Pizza(models.Model):
 
     @property
     def price(self):
+        plus_500 = 0 if self.status == 'Normale' else 500
         extratopping_price = sum([extratopping.price for extratopping in self.extratoppings.all()])
         try:
             size_prices = PizzaSizePrice.objects.first()
             if not size_prices:
                 raise ValueError("Aucun prix de pizza n'est défini.")
 
-            return size_prices.Grande + extratopping_price if self.size == "Grande" else size_prices.Petite + extratopping_price
+            return size_prices.Grande + extratopping_price + plus_500 if self.size == "Grande" else size_prices.Petite + extratopping_price + plus_500
         except PizzaSizePrice.DoesNotExist:
             return 0  # Retourne un prix par défaut si aucun prix n'est configuré
 
@@ -222,7 +223,7 @@ class orders(models.Model):
 
     @property
     def pizza_and_extratopping_price(self):
-        return sum([pizza.price for pizza in self.pizzas.all()]) + 500
+        return sum([pizza.price for pizza in self.pizzas.all()])
 
     def __str__(self):
         return f'Commande No {str(self.order_id)} du {str(self.create_at)}'
