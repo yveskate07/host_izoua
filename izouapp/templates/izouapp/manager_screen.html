@@ -1856,7 +1856,7 @@ async function getPizzaPrize(size){ // fonction pour obtenir le prix etant donn�
     // Recherche de la taille correspondante
     const matchingItem = inventoryPrice.find(item => item.name === size);
     if (matchingItem) {
-      return parseInt(matchingItem.Price, 10)+500; // Assurez-vous que la propriété est correctement nommée dans JSON
+      return parseInt(matchingItem.Price, 10); // Assurez-vous que la propriété est correctement nommée dans JSON
     } else {
       throw new Error(`La taille ${size} n'a pas été trouvée dans l'inventaire.`);
     }
@@ -2315,7 +2315,7 @@ async function AddSpecialPizzaOnSiteToInvoice(idBtn,errorid,summary_box) { // **
       const pizzaPrice = await getPizzaPrize(pizzaSize);
       const toppingPrices = await getToppingPrices(pizzaExtraToppings);
 
-      const total_Price = pizzaPrice + toppingPrices;
+      const total_Price = pizzaPrice + toppingPrices + 500;
 
       const html = `
           <input type="text" class='col-md-2 mx-1' id="name" value="${pizzaHalf1 + ' - ' + pizzaHalf2}" disabled>

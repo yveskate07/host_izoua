@@ -802,7 +802,7 @@ def get_summary_of_one_delivery_man(request):
             context['his_orders'] = his_orders
             context['total_orders_in_cfa'] = total_orders_in_cfa
             context['total_delivery_in_cfa'] = total_delivery_in_cfa
-            context['total_20_percent_delivery_in_cfa'] = 0.2*total_20_percent_delivery_in_cfa
+            context['total_20_percent_delivery_in_cfa'] = 0.2*total_orders_in_cfa
 
 
     context['delivery_men'] = get_delivery_men()
