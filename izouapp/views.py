@@ -10,8 +10,8 @@ from django.conf import settings
 
 from accounts.auth_form import UserLoginForm
 from accounts.models import Manager_or_Admin
-from .datas_to_export import create_excel_with_data, get_most_and_least_sold_pizza_names
-from .mail_sender import send_period_digest, get_chart_imgs_datas
+from .datas_to_export import create_excel_with_data
+from .mail_sender import send_period_digest
 from .models import orders, Pizza, Client, DailyInventory, ExtraTopping, PizzaSizePrice, DeliveryPerson, PizzaName, \
     SendMailReminder
 from datetime import timedelta, datetime, date
@@ -26,7 +26,7 @@ locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(script_dir)
-file_path = os.path.join(parent_dir, 'staticfiles', 'izouapp', 'data.json') # pour la production
+file_path = os.path.join(parent_dir, 'staticfiles', 'izouapp', 'data.json') # pour lea production
 
 #file_path = os.path.join(script_dir, 'static', 'izouapp', 'data.json')
 
@@ -36,8 +36,9 @@ file_path = os.path.join(parent_dir, 'staticfiles', 'izouapp', 'data.json') # po
 def add_inventory(request):  # fonction qui cree et ajoute un nouvel inventaire dans la bd
     if request.method == "POST":
         try:
-            date = datetime.strptime(request.POST.get('addDate'), "%Y-%m-%d").date()
-            if date != date.fromisoformat(request.session['date_selected']):
+            date_ = datetime.strptime(request.POST.get('addDate'), "%Y-%m-%d").date()
+            print(f"date is {date_} and his type :{type(date_)}")
+            if date_ != date.fromisoformat(request.session.get('date_selected',now().date().isoformat())):
                 return render(request, 'izouapp/error_template.html', context={'error':"La date de l'inventaire ne peut pas être différente de la date sélectionnée !"})
             grande = int(request.POST.get('addGrande'))
 
@@ -47,18 +48,19 @@ def add_inventory(request):  # fonction qui cree et ajoute un nouvel inventaire 
             if mini<0:
                 return render(request, 'izouapp/error_template.html', context={'error':"Le nombre de petites pizzas ne peut pas être inférieur à zéro !"})
 
-            DailyInventory.objects.create(small_pizzas_count=mini, large_pizzas_count=grande, date=date)
+            DailyInventory.objects.create(small_pizzas_count=mini, large_pizzas_count=grande, date=date_)
 
 
         except ValueError:
             return render(request, 'izouapp/error_template.html', context={'error':"Entrez des données valides s'il vous plaît !!"})
 
-        finally:
-            return fetching_datas(request, filter_=date,
-                                  date_to_print=datetime.strptime(request.POST.get('addDate'),
-                                                                  "%Y-%m-%d").date().isoformat())
+        else:
+            request.session['date_selected'] = date_.isoformat()
+            request.session['from_add_inventory'] = True
+            request.session['date_to_print'] = datetime.strptime(request.POST.get('addDate'), "%Y-%m-%d").date().isoformat()
 
-    return HttpResponseRedirect(request.path)
+
+    return redirect(reverse('home'))
 
 
 class IzouaLoginView(LoginView):
@@ -82,9 +84,9 @@ def edit_order_status(request):
             return render(request, 'izouapp/error_template.html', context={'error':"Cette commande a été supprimée depuis l'interface admin"})
 
         if len(DailyInventory.objects.filter(date=get_date(request))):
-            current_inventory = DailyInventory.objects.filter(date=get_date(request))
-            soldTotalStart = {'Petite':current_inventory[0].sold_small_pizzas_count,
-                              'Grande':current_inventory[0].sold_large_pizzas_count}
+            current_inventory = DailyInventory.objects.filter(date=get_date(request)).first()
+            soldTotalStart = {'Petite':current_inventory.sold_small_pizzas_count,
+                              'Grande':current_inventory.sold_large_pizzas_count}
         else:
             return render(request, 'izouapp/error_template.html', context={'error':"L'inventaire pour le jour choisi n'existe pas ou a été supprimé."})
 
@@ -92,20 +94,33 @@ def edit_order_status(request):
 
         first_status = obj_first.status
 
+        plus_or_minus = 1
         if order_status in ['delivered','pending'] and first_status == 'canceled':
-            current_inventory.update(sold_small_pizzas_count=soldTotalStart['Petite'] + soldSizes['Petite'], # si la commande passe de annulée à livrée,  alors le nombre de pizzas vendues de l'inventaire actuel est incrémenté du nombre de pizzas vendues dans cette commande
-                                     sold_large_pizzas_count=soldTotalStart['Grande'] + soldSizes['Grande'])
+            plus_or_minus = 1
 
         elif order_status == 'canceled' and first_status in ['delivered','pending']:
-            current_inventory.update(sold_small_pizzas_count=soldTotalStart['Petite'] - soldSizes['Petite'], # si la commande passe de livrée/en attente à annulée, alors le nombre de pizzas vendues de l'inventaire actuel est décrémenté du nombre de pizzas vendues dans cette commande
-                                     sold_large_pizzas_count=soldTotalStart['Grande'] - soldSizes['Grande'])
+            plus_or_minus = -1
 
-        obj_first.status = order_status
+        """current_inventory.update(sold_small_pizzas_count=soldTotalStart['Petite'] + plus_or_minus * soldSizes['Petite'], # si la commande passe de annulée à livrée,  alors le nombre de pizzas vendues de l'inventaire actuel est incrémenté du nombre de pizzas vendues dans cette commande
+                                 sold_large_pizzas_count=soldTotalStart['Grande'] + plus_or_minus * soldSizes['Grande'])"""
 
-        obj_first.save()
+        current_inventory.sold_small_pizzas_count=soldTotalStart['Petite'] + plus_or_minus * soldSizes['Petite']
+        current_inventory.sold_large_pizzas_count=soldTotalStart['Grande'] + plus_or_minus * soldSizes['Grande']
 
-    return fetching_datas(request, filter_=request.session.get('date_selected', now().date()),
-                          date_to_print=datetime.strptime(request.session.get('date_selected', now().date()), "%Y-%m-%d").date().isoformat())
+        try:
+            current_inventory.save()
+        except ValueError as e:
+            return render(request, 'izouapp/error_template.html',
+                          context={'error': str(e)})
+        else:
+            obj_first.status = order_status
+
+            obj_first.save()
+
+    request.session['from_oprder_status'] = True
+
+    return redirect(reverse('home'))
+
 
 @login_required
 def to_admin(request):
@@ -117,11 +132,10 @@ def filter_orders_by_status(request):  # quand l'utilisateur change de filtre
 
     if request.method == 'POST':
         datas_to_json(request)
-        return fetching_datas(request, filter_=request.POST.get('selected_option'),
-                              date_to_print=request.session['date_selected'])
+        request.session['filter_by_status'] = True
+        request.session['selected_option'] = request.POST.get('selected_option')
 
     return redirect(reverse('home'))
-
 
 @login_required
 def filter_orders_by_date(request):  # quand l'utilisateur change de date à partir du calendrier date_from_form
@@ -129,9 +143,8 @@ def filter_orders_by_date(request):  # quand l'utilisateur change de date à par
     if request.method == 'POST':
         request.session['date_selected'] = request.POST.get('datePicker')
         datas_to_json(request)
-        return fetching_datas(request, filter_=date.fromisoformat(request.session['date_selected']),
-                                  date_to_print=datetime.strptime(request.POST.get('datePicker'),
-                                                                  "%Y-%m-%d").date().isoformat())
+        request.session['filter_by_date'] = True
+        request.session['date_to_print'] = datetime.strptime(request.POST.get('datePicker'),"%Y-%m-%d").date().isoformat()
 
     return redirect(reverse('home'))
 
@@ -270,7 +283,7 @@ def edit_order_directly(request, client_to_edit, order_to_edit, id_deliveryman, 
     initial_status = obj_first.status
 
     if len(DailyInventory.objects.filter(date=get_date(request))):
-        current_inventory = DailyInventory.objects.filter(date=get_date(request))
+        current_inventory = DailyInventory.objects.filter(date=get_date(request)).first()
     else:
         return render(request, 'izouapp/error_template.html', context={'error':"L'inventaire pour le jour choisi n'existe pas ou a été supprimé"})
 
@@ -298,40 +311,59 @@ def edit_order_directly(request, client_to_edit, order_to_edit, id_deliveryman, 
             else:
                 return render(request, 'izouapp/error_template.html', context={'error':'Un des livreurs a été supprimé de la base de données.'})
 
-            client.update(name=client_name, phone_number=client_number, adress=client_adress)
-
-            obj_first.status = order_status
-            obj_first.deliveryHour = delivery_time
-            obj_first.deliveryAdress = client_adress
-            obj_first.payment_method_order = payment_method_order_from_order_to_deliver # ***************
-            obj_first.payment_method_delivery = payment_method_delivery_from_order_to_deliver # ***************
-            obj_first.update_at = now()
-            obj_first.surplace = False
-            obj_first.deliveryPerson = deliv_man
-            obj_first.client = client.first()
-            obj_first.deliveryPrice = price_delivery
-
-            pizzas = split_html_and_get_pizzas(request,html_list_order, pizzas_count_sold=None, edit=True,
+            pizzas:list[Pizza] = split_html_and_get_pizzas(request,html_list_order, pizzas_count_sold=None, edit=True,
                                                finalOrderStatus=order_status, firstOrderStatus=initial_status)
+
+            current_inventory.sold_small_pizzas_count = current_inventory.small_pizzas_count - pizzas_count_av['Petite']
+            current_inventory.sold_large_pizzas_count = current_inventory.large_pizzas_count - pizzas_count_av['Grande']
+
+            try:
+                current_inventory.save()
+            except ValueError as e:
+                for pizza in pizzas:
+                    pizza.delete()
+                return render(request, 'izouapp/error_template.html', context={'error': str(e)})
+            else:
+                client.update(name=client_name, phone_number=client_number, adress=client_adress)
+
+                obj_first.status = order_status
+                obj_first.deliveryHour = delivery_time
+                obj_first.deliveryAdress = client_adress
+                obj_first.payment_method_order = payment_method_order_from_order_to_deliver
+                obj_first.payment_method_delivery = payment_method_delivery_from_order_to_deliver
+                obj_first.update_at = now()
+                obj_first.surplace = False
+                obj_first.deliveryPerson = deliv_man
+                obj_first.client = client.first()
+                obj_first.deliveryPrice = price_delivery
+                obj_first.pizzas.add(*tuple(pizzas))
+                obj_first.save()
+                order.update(edit_requested=False)
 
         else:
 
-            client.update(name=client_name)
-            obj_first.update_at = now()
-            obj_first.surplace = True
-            obj_first.status = order_status if order_status else 'on-site'
-            obj_first.client = client.first()
-
-            pizzas = split_html_and_get_pizzas(request,html_list_order, pizzas_count_sold=None, edit=True,
+            pizzas:list[Pizza] = split_html_and_get_pizzas(request,html_list_order, pizzas_count_sold=None, edit=True,
                                                finalOrderStatus=order_status, firstOrderStatus=initial_status)
 
-        obj_first.pizzas.add(*tuple(pizzas))
-        obj_first.save()
-        order.update(edit_requested=False)
-        current_inventory.update(
-            sold_small_pizzas_count=current_inventory[0].small_pizzas_count - pizzas_count_av['Petite'],
-            sold_large_pizzas_count=current_inventory[0].large_pizzas_count - pizzas_count_av[
-                'Grande'])  # mise à jour de l'inventaire
+            current_inventory.sold_small_pizzas_count = current_inventory.small_pizzas_count - pizzas_count_av['Petite']
+            current_inventory.sold_large_pizzas_count = current_inventory.large_pizzas_count - pizzas_count_av['Grande']
+
+            try:
+                current_inventory.save()
+            except ValueError as e:
+                for pizza in pizzas:
+                    pizza.delete()
+                return render(request, 'izouapp/error_template.html', context={'error': str(e)})
+            else:
+                client.update(name=client_name)
+                obj_first.update_at = now()
+                obj_first.surplace = True
+                obj_first.status = order_status if order_status else 'on-site'
+                obj_first.client = client.first()
+                obj_first.pizzas.add(*tuple(pizzas))
+                obj_first.save()
+                order.update(edit_requested=False)
+
 
 
 @login_required
@@ -408,7 +440,7 @@ def edit_order(request):  # modifie simplement le dictionnaire data.json et la c
         initial_status = obj_first.status
 
         if len(DailyInventory.objects.filter(date=get_date(request))):
-            current_inventory = DailyInventory.objects.filter(date=get_date(request))
+            current_inventory = DailyInventory.objects.filter(date=get_date(request)).first()
         else:
             return render(request, 'izouapp/error_template.html', context={'error':"L'inventaire pour le jour choisi n'existe pas ou a été supprimé"})
 
@@ -423,41 +455,58 @@ def edit_order(request):  # modifie simplement le dictionnaire data.json et la c
                 pizzas = split_html_and_get_pizzas(request,html_list_order, pizzas_count_sold=None, edit=True,
                                                    firstOrderStatus=initial_status, finalOrderStatus=order_status)
 
-                client.update(name=client_name, phone_number=client_number, adress=client_adress)
-                obj_first.status = order_status
-                obj_first.deliveryHour = delivery_time
-                obj_first.deliveryAdress = client_adress
-                obj_first.payment_method_order = payment_method_order_from_order_to_deliver # ***************
-                obj_first.payment_method_delivery = payment_method_delivery_from_order_to_deliver # ***************
-                obj_first.update_at = now()
-                obj_first.surplace = False
-                obj_first.deliveryPerson = deliv_man
-                obj_first.client = client.first()
-                obj_first.deliveryPrice = price_delivery
+                current_inventory.sold_small_pizzas_count = current_inventory.small_pizzas_count - pizzas_count_av['Petite']
+                current_inventory.sold_large_pizzas_count = current_inventory.large_pizzas_count - pizzas_count_av['Grande']
+
+                try:
+                    current_inventory.save()
+                except ValueError as e:
+                    for pizza in pizzas:
+                        pizza.delete()
+                    return render(request, 'izouapp/error_template.html', context={'error': str(e)})
+                else:
+                    client.update(name=client_name, phone_number=client_number, adress=client_adress)
+                    obj_first.status = order_status
+                    obj_first.deliveryHour = delivery_time
+                    obj_first.deliveryAdress = client_adress
+                    obj_first.payment_method_order = payment_method_order_from_order_to_deliver  # ***************
+                    obj_first.payment_method_delivery = payment_method_delivery_from_order_to_deliver  # ***************
+                    obj_first.update_at = now()
+                    obj_first.surplace = False
+                    obj_first.deliveryPerson = deliv_man
+                    obj_first.client = client.first()
+                    obj_first.deliveryPrice = price_delivery
+
+                    obj_first.pizzas.add(*tuple(pizzas))
+                    obj_first.save()
+                    order.update(edit_requested=False)
 
             else:
                 pizzas = split_html_and_get_pizzas(request,html_list_order, pizzas_count_sold=None, edit=True,
                                                    firstOrderStatus=initial_status, finalOrderStatus=order_status)
 
-                client.update(name=client_name)
-                obj_first.update_at = now()
-                obj_first.surplace = True
-                #obj_first.status = order_status
-                obj_first.client = client.first()
+                current_inventory.sold_small_pizzas_count = current_inventory.small_pizzas_count - pizzas_count_av['Petite']
+                current_inventory.sold_large_pizzas_count = current_inventory.large_pizzas_count - pizzas_count_av['Grande']
 
-            obj_first.pizzas.add(*tuple(pizzas))
-            obj_first.save()
+                try:
+                    current_inventory.save()
+                except ValueError as e:
+                    for pizza in pizzas:
+                        pizza.delete()
+                    return render(request, 'izouapp/error_template.html', context={'error': str(e)})
+                else:
+                    client.update(name=client_name)
+                    obj_first.update_at = now()
+                    obj_first.surplace = True
+                    obj_first.client = client.first()
 
-            current_inventory.update(
-                sold_small_pizzas_count=current_inventory[0].small_pizzas_count - pizzas_count_av['Petite'],
-                sold_large_pizzas_count=current_inventory[0].large_pizzas_count - pizzas_count_av[
-                    'Grande'])  # mise à jour de l'inventaire
+                    obj_first.pizzas.add(*tuple(pizzas))
+                    obj_first.save()
+                    order.update(edit_requested=False)
 
         else:
 
             pizza_names = get_pizzas_names_from_html_input(html_list_order)
-
-            csrf_token = get_token(request)
 
             if order_type == 'to-deliver':
                 pizzas_count_av = {'Petite': int(request.POST.get('edit-SmallPizzasAvailableOnDelivery')),
@@ -503,10 +552,6 @@ def edit_order(request):  # modifie simplement le dictionnaire data.json et la c
                 json.dump(content, file)
 
             order.update(edit_requested=True)
-
-
-        return fetching_datas(request, filter_=request.session.get('date_selected', now().date()),
-                              date_to_print=request.session.get('date_selected', now().date().isoformat()))
 
     return redirect(reverse('home'))
 
@@ -562,10 +607,32 @@ def send_email(request):
 @login_required
 def home(request):  # quand l'utilisateur atterit sur la page pour la premiere fois
 
-
     send_email(request)
     get_datas_to_chart_directly(request)
-    return fetching_datas(request, filter_=None, date_to_print=request.session.get('date_selected', now().date().isoformat()))
+    if request.session.get('from_add_inventory',None):
+        request.session['from_add_inventory'] = False
+        return fetching_datas(request, filter_=date.fromisoformat(request.session.get('date_selected', None)),
+                              date_to_print=request.session.get('date_to_print', now().date().isoformat()))
+
+    elif request.session.get('filter_by_status',None):
+        request.session['filter_by_status'] = False
+        return fetching_datas(request, filter_=request.POST.get('selected_option'),
+                              date_to_print=request.session.get('date_selected', now().date().isoformat()))
+
+    elif request.session.get('filter_by_date',None):
+        request.session['filter_by_date'] = False
+        return fetching_datas(request, filter_=date.fromisoformat(request.session.get('date_selected')),
+                              date_to_print=datetime.strptime(request.session.get('date_to_print', now().date().isoformat()),
+                                                              "%Y-%m-%d").date().isoformat())
+
+    elif request.session.get('from_order_status', None):
+        request.session['from_order_status'] = False
+        return fetching_datas(request, filter_=request.session.get('date_selected', now().date()),
+                              date_to_print=datetime.strptime(request.session.get('date_selected', now().date().isoformat()),
+                                                              "%Y-%m-%d").date().isoformat())
+
+    else:
+        return fetching_datas(request, filter_=date.fromisoformat(request.session.get('date_selected', None)), date_to_print=request.session.get('date_selected', now().date().isoformat()))
 
 
 def fetching_datas(request, filter_, date_to_print):
@@ -667,8 +734,7 @@ def fetching_datas(request, filter_, date_to_print):
                     # à la fin html_list_order contient une liste de code html pour les pizzas speciales et normales mais pour la commande en cours
 
                 if 'orderToHtml' in content.keys():
-                    for dict_ in content[
-                        'orderToHtml']:  # à la recherche du dictionnaire correcpondant à la commande actuelle dans le fichier data.json
+                    for dict_ in content['orderToHtml']:  # à la recherche du dictionnaire correcpondant à la commande actuelle dans le fichier data.json
                         if dict_['order_id'] == data.order_id:  # si trouvé
                             if not data.surplace:
                                 content['orderToHtml'][content['orderToHtml'].index(dict_)] = {
@@ -816,103 +882,133 @@ def delivery_men_board(request):
 
     return render(request, 'izouapp/delivery_men_dashboard.html', context=context)
 
+"""def writing_orderToHtml(request):
+    with open(file_path, 'r') as file:
+        content = json.load(file)
+        
+    all_orders = orders.objects.filter(create_at=date.fromisoformat(request.session['date_selected']))
+    for order in all_orders:
+        order_dict = {'order_id': order.order_id,
+                                   'client_infos': {'name': order.client.name,
+                                                    'number': order.client.name,
+                                                    'deliveryAdress': order.client.phone_number,
+                                                    'paymentModeOrder': order.payment_method_order,
+                                                    'paymentModeDelivery': order.payment_method_delivery,
+                                                    'delivPrice': order.deliveryPrice,
+                                                    'deliveryMan': order.deliveryPerson.name,
+                                                    'deliveryHour': order.deliveryHour},
+                                   'orderHTML': html_list_order}
+    content['orderToHtml'].append({'order_id': order.order_id,
+                                   'client_infos': {'name': infos_client['name'],
+                                                    'number': infos_client['numero'],
+                                                    'deliveryAdress': infos_client['adresse'],
+                                                    'paymentModeOrder': infos_client['methode_payement_order'],
+                                                    'paymentModeDelivery': infos_client['methode_payement_delivery'],
+                                                    'delivPrice': infos_client['prix_livraison'],
+                                                    'deliveryMan': infos_client['livreur'],
+                                                    'deliveryHour': infos_client['heure_livraison']},
+                                   'orderHTML': html_list_order})"""
+
 
 @login_required
 def add_order(request):
     if request.method == 'POST':
-        try:
-            with open(file_path, 'r') as file:
-                content = json.load(file)
+        with open(file_path, 'r') as file:
+            content = json.load(file)
 
-                current_inventory = DailyInventory.objects.filter(date=get_date(request))  # inventaire de la date actuelle
+            current_inventory = DailyInventory.objects.filter(date=get_date(request)).first()  # inventaire de la date actuelle
 
-                pizzas_count_sold = {'Petite': current_inventory[0].sold_small_pizzas_count,
-                                     # le nombre de petites pizzas vendues
-                                     'Grande': current_inventory[
-                                         0].sold_large_pizzas_count}  # le nombre de grandes pizzas vendues
+            pizzas_count_sold = {'Petite': current_inventory.sold_small_pizzas_count,
+                                 # le nombre de petites pizzas vendues
+                                 'Grande': current_inventory.sold_large_pizzas_count}  # le nombre de grandes pizzas vendues
 
-                if request.POST.get('addOrder') == 'order_to_deliver':  # si la commande est à livrer
-                    html_list_order = request.POST.get(
-                        'hidden-textarea-from-order-on-delivery')  # bloc html de toutes les pizzas + le bouton supprimer à reintroduire dans le html
+            if request.POST.get('addOrder') == 'order_to_deliver':  # si la commande est à livrer
+                html_list_order = request.POST.get(
+                    'hidden-textarea-from-order-on-delivery')  # bloc html de toutes les pizzas + le bouton supprimer à reintroduire dans le html
 
-                    infos_client = {'name': request.POST.get('client_name'),
-                                    'numero': request.POST.get('client_number'),
-                                    'adresse': request.POST.get('client_adress'),
-                                    'methode_payement_order': request.POST.get('payment_method_order_from_order_to_deliver'),
-                                    'methode_payement_delivery': request.POST.get('payment_method_delivery_from_order_to_deliver'),
-                                    'prix_livraison': request.POST.get('price_delivery'),
-                                    'livreur': request.POST.get('delivery_man'),
-                                    'heure_livraison': request.POST.get('delivery_time')}
+                infos_client = {'name': request.POST.get('client_name'),
+                                'numero': request.POST.get('client_number'),
+                                'adresse': request.POST.get('client_adress'),
+                                'methode_payement_order': request.POST.get('payment_method_order_from_order_to_deliver'),
+                                'methode_payement_delivery': request.POST.get('payment_method_delivery_from_order_to_deliver'),
+                                'prix_livraison': request.POST.get('price_delivery'),
+                                'livreur': request.POST.get('delivery_man'),
+                                'heure_livraison': request.POST.get('delivery_time')}
 
-                    order_html = request.POST.get(
-                        'hidden-textarea-from-order-on-delivery1')  # bloc html de toutes les pizzas
+                order_html = request.POST.get('hidden-textarea-from-order-on-delivery1')  # bloc html de toutes les pizzas
 
-                    pizzas, pizzas_count_sold = split_html_and_get_pizzas(request,html=order_html,
-                                                                          pizzas_count_sold=pizzas_count_sold,
-                                                                          firstOrderStatus='delivered',
-                                                                          finalOrderStatus='delivered')  # noms des pizzas commandées + inventaire des pizzas vendues mis à jour
-                    """if pizzas_count_sold['Grande'] > current_inventory.large_pizzas_count:
-                        return render(request, 'izouapp/error_template.html', context={'error':"Vous ne pouvez plus ajouter de grandes pizzas !"})
+                try:
+                    deliv_price = int(infos_client['prix_livraison']) # conversion du prix de livraison en entier
+                except ValueError:
+                    return render(request, 'izouapp/error_template.html', context={'error': "Le prix de la livraison doit être un entier."})
 
-                    elif pizzas_count_sold['Petite'] > current_inventory.small_pizzas_count:
-                        return render(request, 'izouapp/error_template.html', context={'error':"Vous ne pouvez plus ajouter de petites pizzas !"})"""
+                pizzas, pizzas_count_sold = split_html_and_get_pizzas(request,html=order_html,
+                                                                      pizzas_count_sold=pizzas_count_sold,
+                                                                      firstOrderStatus='delivered',
+                                                                      finalOrderStatus='delivered')  # noms des pizzas commandées + inventaire des pizzas vendues mis à jour
 
+                current_inventory.sold_small_pizzas_count=pizzas_count_sold['Petite']
+                current_inventory.sold_large_pizzas_count=pizzas_count_sold['Grande']
+
+                try:
+                    current_inventory.save()
+                except ValueError as e:
+                    for pizza in pizzas:
+                        pizza.delete()
+                    return render(request, 'izouapp/error_template.html', context={'error': str(e)})
+                else:
                     client = Client.objects.create(  # création d'un nouveau client
                         name=infos_client['name'],
                         phone_number=infos_client['numero'],
                         adress=infos_client['adresse'])
 
-                    try:
-                        deliv_price = int(infos_client['prix_livraison'])
-                    except ValueError as e:
-                        return HttpResponse(
-                            "Le prix de la livraison doit être un entier. Veuillez tout autre caractère qui n'est pas un nombre, y compris les espaces.")
-                    else:
-                        order = orders.objects.create(  # création d'une nouvelle commande
-                            create_at=date.fromisoformat(request.session['date_selected']), # [date]
-                            deliveryHour=infos_client['heure_livraison'], # [heure]
-                            deliveryAdress=infos_client['adresse'], # [adresse]
-                            payment_method_order=infos_client['methode_payement_order'], # [izoua, delivered_man]
-                            payment_method_delivery = infos_client['methode_payement_delivery'], # [izoua, delivered_man]
-                            deliveryPerson=DeliveryPerson.objects.filter(name=infos_client['livreur'])[0], # [1,2]
-                            client=client, # [1,77]
-                            deliveryPrice=infos_client['prix_livraison'], # [1000-5000]
-                        )
+                    order = orders.objects.create(  # création d'une nouvelle commande
+                        create_at=date.fromisoformat(request.session['date_selected']),
+                        deliveryHour=infos_client['heure_livraison'],
+                        deliveryAdress=infos_client['adresse'],
+                        payment_method_order=infos_client['methode_payement_order'],
+                        payment_method_delivery=infos_client['methode_payement_delivery'],
+                        deliveryPerson=DeliveryPerson.objects.filter(name=infos_client['livreur'])[0],
+                        client=client,
+                        deliveryPrice=deliv_price,
+                    )
 
-                        order.pizzas.add(*tuple(pizzas))  # ajout des pizzas dans la commande
+                    order.pizzas.add(*tuple(pizzas))  # ajout des pizzas dans la commande
 
-                        current_inventory.update(sold_small_pizzas_count=pizzas_count_sold['Petite'],
-                                                 sold_large_pizzas_count=pizzas_count_sold['Grande'])  # mise à jour de l'inventaire
 
-                        content['orderToHtml'].append({'order_id': order.order_id,
-                                                       'client_infos': {'name': infos_client['name'],
-                                                                        'number': infos_client['numero'],
-                                                                        'deliveryAdress': infos_client['adresse'],
-                                                                        'paymentModeOrder':infos_client['methode_payement_order'],
-                                                                        'paymentModeDelivery': infos_client['methode_payement_delivery'],
-                                                                        'delivPrice': infos_client['prix_livraison'],
-                                                                        'deliveryMan': infos_client['livreur'],
-                                                                        'deliveryHour': infos_client['heure_livraison']},
-                                                       'orderHTML': html_list_order})
+                    content['orderToHtml'].append({'order_id': order.order_id,
+                                                   'client_infos': {'name': infos_client['name'],
+                                                                    'number': infos_client['numero'],
+                                                                    'deliveryAdress': infos_client['adresse'],
+                                                                    'paymentModeOrder':infos_client['methode_payement_order'],
+                                                                    'paymentModeDelivery': infos_client['methode_payement_delivery'],
+                                                                    'delivPrice': infos_client['prix_livraison'],
+                                                                    'deliveryMan': infos_client['livreur'],
+                                                                    'deliveryHour': infos_client['heure_livraison']},
+                                                   'orderHTML': html_list_order})
 
-                else:  # si la commande est sur place
+            else:  # si la commande est sur place
 
-                    html_list_order = request.POST.get('hidden-textarea-from-order-on-site')
+                html_list_order = request.POST.get('hidden-textarea-from-order-on-site')
 
-                    infos_client = {'name_onsite': request.POST.get('client_name')}
-                    order_html = request.POST.get('hidden-textarea-from-order-on-site1')
+                infos_client = {'name_onsite': request.POST.get('client_name')}
+                order_html = request.POST.get('hidden-textarea-from-order-on-site1')
 
-                    pizzas, pizzas_count_sold = split_html_and_get_pizzas(request,html=order_html,
-                                                                          pizzas_count_sold=pizzas_count_sold,
-                                                                          firstOrderStatus='delivered',
-                                                                          finalOrderStatus='delivered')
+                pizzas, pizzas_count_sold = split_html_and_get_pizzas(request,html=order_html,
+                                                                      pizzas_count_sold=pizzas_count_sold,
+                                                                      firstOrderStatus='delivered',
+                                                                      finalOrderStatus='delivered')
 
-                    """if pizzas_count_sold['Grande'] > current_inventory.large_pizzas_count:
-                        return render(request, 'izouapp/error_template.html', context={'error':"Vous ne pouvez plus ajouter de grandes pizzas !"})
+                current_inventory.sold_small_pizzas_count = pizzas_count_sold['Petite']
+                current_inventory.sold_large_pizzas_count = pizzas_count_sold['Grande']
 
-                    elif pizzas_count_sold['Petite'] > current_inventory.small_pizzas_count:
-                        return render(request, 'izouapp/error_template.html', context={'error':"Vous ne pouvez plus ajouter de petites pizzas !"})"""
-
+                try:
+                    current_inventory.save()
+                except ValueError as e:
+                    for pizza in pizzas:
+                        pizza.delete()
+                    return render(request, 'izouapp/error_template.html', context={'error': str(e)})
+                else:
                     client = Client.objects.create(
                         name=infos_client['name_onsite'])
 
@@ -923,23 +1019,13 @@ def add_order(request):
                         client=client
                     )
 
-                    order.pizzas.add(*tuple(pizzas))
-
-                    current_inventory.update(sold_small_pizzas_count=pizzas_count_sold['Petite'],
-                                             sold_large_pizzas_count=pizzas_count_sold['Grande'])
+                    order.pizzas.add(*tuple(pizzas))  # ajout des pizzas dans la commande
 
                     content['orderToHtml'].append(
                         {'order_id': order.order_id, 'client_infos': {'name': client.name}, 'orderHTML': html_list_order})
 
-            with open(file_path, 'w') as file:
-                json.dump(content, file)
-
-        except ValueError:
-            return render(request, 'izouapp/error_template.html', context={'error':'Veuillez saisir des données valides'})
-
-        finally:
-            return fetching_datas(request, filter_=date.fromisoformat(request.session['date_selected']),
-                                  date_to_print=request.session['date_selected'])
+        with open(file_path, 'w') as file:
+            json.dump(content, file)
 
     return redirect(reverse('home'))
 

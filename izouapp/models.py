@@ -281,3 +281,19 @@ class DailyInventory(models.Model):
     def __str__(self):
         return f'Inventaire du {self.date}'
 
+    def save(self, *args, **kwargs):
+        # Vérification 1 : Les pizzas vendues (small) ne doivent pas excéder le stock
+        if self.sold_small_pizzas_count > self.small_pizzas_count:
+            raise ValueError(
+                "Le nombre de petites pizzas vendues ne peut pas dépasser le stock disponible."
+            )
+
+        # Vérification 2 : Les pizzas vendues (large) ne doivent pas excéder le stock
+        if self.sold_large_pizzas_count > self.large_pizzas_count:
+            raise ValueError(
+                "Le nombre de grandes pizzas vendues ne peut pas dépasser le stock disponible."
+            )
+
+        # Appeler la méthode `save` de la classe parente
+        super().save(*args, **kwargs)
+
