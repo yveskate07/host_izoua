@@ -2580,6 +2580,7 @@ function editOrder(grande,petite,status,orderLine, order_id_, client_id, deliver
   })
   .then(data => {
   orderToHTML = data.orderToHtml;
+  console.log("orderToHTML: ", orderToHTML)
   let order_dict;
   for(const order of orderToHTML){
     if(order.order_id===order_id__){
