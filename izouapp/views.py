@@ -1,16 +1,14 @@
 import json
 import traceback
-from django.middleware.csrf import get_token
 from bs4 import BeautifulSoup
 from django.contrib.auth.views import LoginView, LogoutView
 from django.urls import reverse
 from django.utils.timezone import now
 from django.shortcuts import render, redirect
 from django.conf import settings
-
 from accounts.auth_form import UserLoginForm
 from accounts.models import Manager_or_Admin
-from .datas_to_export import create_excel_with_data
+from .datas_to_export import create_excel_with_data, writing_orderToHtml_in_data_json
 from .mail_sender import send_period_digest
 from .models import orders, Pizza, Client, DailyInventory, ExtraTopping, PizzaSizePrice, DeliveryPerson, PizzaName, \
     SendMailReminder
@@ -117,7 +115,7 @@ def edit_order_status(request):
 
             obj_first.save()
 
-    request.session['from_oprder_status'] = True
+    request.session['from_order_status'] = True
 
     return redirect(reverse('home'))
 
@@ -236,7 +234,7 @@ def get_pizzas_names_from_html_input(html):
 
 
 @login_required
-def edit_order_if_granted(request):
+def edit_order_if_granted(request):#******************************************************************* doit rediriger vers la vue home
     if request.method == 'POST':
         order_to_edit = int(request.POST.get('grantedEdit'))
 
@@ -264,8 +262,8 @@ def edit_order_if_granted(request):
                                 pizzas_count_av=data[14]  # int
                                 )
 
-        return fetching_datas(request, filter_=request.session.get('date_selected',now().date()),
-                              date_to_print=request.session.get('date_selected',now().date().isoformat()))
+        request.session['from_edit_order_if_granted']=True
+
     return redirect(reverse('home'))
 
 
@@ -337,6 +335,7 @@ def edit_order_directly(request, client_to_edit, order_to_edit, id_deliveryman, 
                 obj_first.client = client.first()
                 obj_first.deliveryPrice = price_delivery
                 obj_first.pizzas.add(*tuple(pizzas))
+                obj_first.html_code = html_list_order
                 obj_first.save()
                 order.update(edit_requested=False)
 
@@ -361,8 +360,11 @@ def edit_order_directly(request, client_to_edit, order_to_edit, id_deliveryman, 
                 obj_first.status = order_status if order_status else 'on-site'
                 obj_first.client = client.first()
                 obj_first.pizzas.add(*tuple(pizzas))
+                obj_first.html_code = html_list_order
                 obj_first.save()
                 order.update(edit_requested=False)
+
+   #writing_orderToHtml_in_data_json(all_orders=list(order), file_path=file_path)
 
 
 
@@ -476,7 +478,7 @@ def edit_order(request):  # modifie simplement le dictionnaire data.json et la c
                     obj_first.deliveryPerson = deliv_man
                     obj_first.client = client.first()
                     obj_first.deliveryPrice = price_delivery
-
+                    obj_first.html_code = html_list_order
                     obj_first.pizzas.add(*tuple(pizzas))
                     obj_first.save()
                     order.update(edit_requested=False)
@@ -499,7 +501,7 @@ def edit_order(request):  # modifie simplement le dictionnaire data.json et la c
                     obj_first.update_at = now()
                     obj_first.surplace = True
                     obj_first.client = client.first()
-
+                    obj_first.html_code = html_list_order
                     obj_first.pizzas.add(*tuple(pizzas))
                     obj_first.save()
                     order.update(edit_requested=False)
@@ -552,6 +554,8 @@ def edit_order(request):  # modifie simplement le dictionnaire data.json et la c
                 json.dump(content, file)
 
             order.update(edit_requested=True)
+
+        writing_orderToHtml_in_data_json(all_orders=list(order), file_path=file_path) # recupération de toutes les commandes choisies et stockage dans data.json
 
     return redirect(reverse('home'))
 
@@ -607,6 +611,9 @@ def send_email(request):
 @login_required
 def home(request):  # quand l'utilisateur atterit sur la page pour la premiere fois
 
+    if not request.session.get('time_start',None):
+        request.session['time_start']=datetime.now().isoformat()
+
     send_email(request)
     get_datas_to_chart_directly(request)
     if request.session.get('from_add_inventory',None):
@@ -631,7 +638,19 @@ def home(request):  # quand l'utilisateur atterit sur la page pour la premiere f
                               date_to_print=datetime.strptime(request.session.get('date_selected', now().date().isoformat()),
                                                               "%Y-%m-%d").date().isoformat())
 
+    elif request.session.get('from_edit_order_if_granted', None):
+        request.session['from_edit_order_if_granted']= False
+        return fetching_datas(request, filter_=request.session.get('date_selected',now().date()),
+                              date_to_print=request.session.get('date_selected',now().date().isoformat()))
+
     else:
+        time_start =  datetime.fromisoformat(request.session.get('time_start'))
+        time_end = datetime.now()
+
+        difference = time_end-time_start
+        if difference.total_seconds()>=300: # si l'utilisateur est connecté depuis plus de 5 minutes
+            request.session['date_selected'] = now().date().isoformat()
+
         return fetching_datas(request, filter_=date.fromisoformat(request.session.get('date_selected', None)), date_to_print=request.session.get('date_selected', now().date().isoformat()))
 
 
@@ -653,8 +672,7 @@ def fetching_datas(request, filter_, date_to_print):
         fetched_datas_orders = orders.objects.filter(
             create_at=filter_)
 
-    elif isinstance(filter_,
-                    str):  # dans le cas où le filtre est un objet de type str: all, canceled, on-site, pending, delivered
+    elif isinstance(filter_,str):  # dans le cas où le filtre est un objet de type str: all, canceled, on-site, pending, delivered
         context['preselected_filter'] = {'all': 'Tout', 'canceled': 'Annulés', 'delivered': 'Livrés',
                                          'on-site': 'Sur place', 'pending': 'En attente'}.get(
             filter_)  # retourne le contenu html du filtre selectionné
@@ -670,6 +688,9 @@ def fetching_datas(request, filter_, date_to_print):
         context['preselected_filter'] = None
         fetched_datas_orders = orders.objects.filter(create_at=date.fromisoformat(
             request.session['date_selected']))  # récupère toutes les commandes créées à la date fournie en paramètre
+
+    writing_orderToHtml_in_data_json(all_orders=list(fetched_datas_orders), file_path=file_path) # recupération de toutes les commandes choisies et stockage dans data.json
+
     for i in range(7):
         daily_inventory = DailyInventory.objects.filter(
             date=date.fromisoformat(request.session['date_selected']) - timedelta(i))
@@ -882,33 +903,6 @@ def delivery_men_board(request):
 
     return render(request, 'izouapp/delivery_men_dashboard.html', context=context)
 
-"""def writing_orderToHtml(request):
-    with open(file_path, 'r') as file:
-        content = json.load(file)
-        
-    all_orders = orders.objects.filter(create_at=date.fromisoformat(request.session['date_selected']))
-    for order in all_orders:
-        order_dict = {'order_id': order.order_id,
-                                   'client_infos': {'name': order.client.name,
-                                                    'number': order.client.name,
-                                                    'deliveryAdress': order.client.phone_number,
-                                                    'paymentModeOrder': order.payment_method_order,
-                                                    'paymentModeDelivery': order.payment_method_delivery,
-                                                    'delivPrice': order.deliveryPrice,
-                                                    'deliveryMan': order.deliveryPerson.name,
-                                                    'deliveryHour': order.deliveryHour},
-                                   'orderHTML': html_list_order}
-    content['orderToHtml'].append({'order_id': order.order_id,
-                                   'client_infos': {'name': infos_client['name'],
-                                                    'number': infos_client['numero'],
-                                                    'deliveryAdress': infos_client['adresse'],
-                                                    'paymentModeOrder': infos_client['methode_payement_order'],
-                                                    'paymentModeDelivery': infos_client['methode_payement_delivery'],
-                                                    'delivPrice': infos_client['prix_livraison'],
-                                                    'deliveryMan': infos_client['livreur'],
-                                                    'deliveryHour': infos_client['heure_livraison']},
-                                   'orderHTML': html_list_order})"""
-
 
 @login_required
 def add_order(request):
@@ -971,12 +965,13 @@ def add_order(request):
                         deliveryPerson=DeliveryPerson.objects.filter(name=infos_client['livreur'])[0],
                         client=client,
                         deliveryPrice=deliv_price,
+                        html_code=html_list_order
                     )
 
                     order.pizzas.add(*tuple(pizzas))  # ajout des pizzas dans la commande
 
 
-                    content['orderToHtml'].append({'order_id': order.order_id,
+                    """content['orderToHtml'].append({'order_id': order.order_id,
                                                    'client_infos': {'name': infos_client['name'],
                                                                     'number': infos_client['numero'],
                                                                     'deliveryAdress': infos_client['adresse'],
@@ -985,7 +980,7 @@ def add_order(request):
                                                                     'delivPrice': infos_client['prix_livraison'],
                                                                     'deliveryMan': infos_client['livreur'],
                                                                     'deliveryHour': infos_client['heure_livraison']},
-                                                   'orderHTML': html_list_order})
+                                                   'orderHTML': html_list_order})"""
 
             else:  # si la commande est sur place
 
@@ -1016,16 +1011,17 @@ def add_order(request):
                         create_at=date.fromisoformat(request.session['date_selected']),
                         surplace=True,
                         status='on-site',
-                        client=client
+                        client=client,
+                        html_code=html_list_order
                     )
 
                     order.pizzas.add(*tuple(pizzas))  # ajout des pizzas dans la commande
 
-                    content['orderToHtml'].append(
-                        {'order_id': order.order_id, 'client_infos': {'name': client.name}, 'orderHTML': html_list_order})
+                    """content['orderToHtml'].append({'order_id': order.order_id, 'client_infos': {'name': client.name}, 'orderHTML': html_list_order})"""
 
-        with open(file_path, 'w') as file:
-            json.dump(content, file)
+        writing_orderToHtml_in_data_json(all_orders=[order], file_path=file_path) # ecriture de la commande dans le fichier json
+        """with open(file_path, 'w') as file:
+            json.dump(content, file)"""
 
     return redirect(reverse('home'))
 

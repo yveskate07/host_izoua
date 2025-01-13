@@ -69,10 +69,10 @@ class ordersAdmin(admin.ModelAdmin):
               'payment_method_delivery',
               'create_at',
               'update_at',
+              'client',
               'surplace',
               'status',
               'deliveryPerson',
-              'client',
               'deliveryPrice',
               'description',)
     readonly_fields = ('description',)

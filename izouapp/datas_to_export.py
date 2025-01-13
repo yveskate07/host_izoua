@@ -1,4 +1,5 @@
 import calendar
+import json
 import os
 from datetime import date, timedelta, datetime
 import numpy as np
@@ -9,14 +10,56 @@ from izouapp.models import orders, DeliveryPerson, Pizza
 from izouaproject import settings
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+from django.http import HttpResponse
 import matplotlib
+
 matplotlib.use('Agg')
 import seaborn as sns
 
-img_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'izouapp', 'images','img_gen_from_charts')# chemin où seront stocké les fichiers img
+img_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'izouapp', 'images',
+                        'img_gen_from_charts')  # chemin où seront stocké les fichiers img
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(script_dir)
+file_path = os.path.join(parent_dir, 'staticfiles', 'izouapp', 'data.json')  # pour la production
 
 
-def prepare_datas_to_export(first_period=None,second_period=None):
+# file_path = os.path.join(script_dir, 'static', 'izouapp', 'data.json')
+
+def writing_orderToHtml_in_data_json(all_orders, file_path=None):
+    with open(file_path, 'r') as file:
+        content = json.load(file)
+
+    content['orderToHtml'] = []
+
+    for order in all_orders:
+        if order.status not in ['on-site']:
+            if isinstance(order.deliveryHour, str):
+                hour = order.deliveryHour
+            else:
+                hour = order.deliveryHour.isoformat()
+            order_dict = {'order_id': order.order_id,
+                          'client_infos': {'name': order.client.name,
+                                           'number': order.client.name,
+                                           'deliveryAdress': order.client.phone_number,
+                                           'paymentModeOrder': order.payment_method_order,
+                                           'paymentModeDelivery': order.payment_method_delivery,
+                                           'delivPrice': order.deliveryPrice,
+                                           'deliveryMan': order.deliveryPerson.name,
+                                           'deliveryHour': hour},
+                          'orderHTML': order.html_code}  # html_list_order: code html à construire
+            content['orderToHtml'].append(order_dict)
+
+        else:
+            order_dict = {'order_id': order.order_id, 'client_infos': {'name': order.client.name,},
+                          'orderHTML': order.html_code}
+            content['orderToHtml'].append(order_dict)
+
+    with open(file_path, 'w') as file:
+        json.dump(content, file)
+
+
+def prepare_datas_to_export(first_period=None, second_period=None):
     fetched_datas = orders.objects.filter(create_at__gte=first_period, create_at__lte=second_period)
     datas_cleaned = []
     if len(fetched_datas):
@@ -33,7 +76,8 @@ def prepare_datas_to_export(first_period=None,second_period=None):
             data_row = [date_formatee_fr, surplace,
                         data.deliveryAdress if data.deliveryAdress else 'Commandée sur place', time_formatee,
                         data.deliveryPerson.name if data.deliveryPerson else 'Commandée sur place',
-                        delivered, data.client.name, methode_payment_order if data.surplace else 'Chez Izoua', methode_payment_delivery if data.surplace else 'Chez Izoua', pizza_names,
+                        delivered, data.client.name, methode_payment_order if data.surplace else 'Chez Izoua',
+                        methode_payment_delivery if data.surplace else 'Chez Izoua', pizza_names,
                         data.deliveryPrice if data.surplace else 'Commandée sur place',
                         data.pizza_and_extratopping_price, data.total_price]
 
@@ -66,10 +110,11 @@ def get_periodicaly_total_orders() -> dict:
     )
     period_before_order_count = period_before_orders.count()
 
-    return {'previous_period_order_count':previous_period_order_count,'period_before_order_count':period_before_order_count}
+    return {'previous_period_order_count': previous_period_order_count,
+            'period_before_order_count': period_before_order_count}
 
 
-def get_periodicaly_orders_info(filter_conditions=None, period="week") -> dict|bool:
+def get_periodicaly_orders_info(filter_conditions=None, period="week") -> dict | bool:
     today = date.today()
 
     if period == "week":
@@ -81,31 +126,32 @@ def get_periodicaly_orders_info(filter_conditions=None, period="week") -> dict|b
         before_period_end = before_period_start + timedelta(days=6)
 
     else:
-        month1 = 12 if today.month - 1 == 0 else today.month - 1 # le mois précedent 1,2,...,12
-        month2 = month1 - 1 # le mois d'avant 1,2,...,12
-        year = today.year-1 if today.month - 1 == 0 else today.year # l'année actuelle
+        month1 = 12 if today.month - 1 == 0 else today.month - 1  # le mois précedent 1,2,...,12
+        month2 = month1 - 1  # le mois d'avant 1,2,...,12
+        year = today.year - 1 if today.month - 1 == 0 else today.year  # l'année actuelle
 
         # Obtenir le premier jour du mois précédent
         previous_period_start = datetime(year, month1, 1)
 
         # Obtenir le dernier jour du mois précédent
         previous_period_end = datetime(year, month1,
-                                           calendar.monthrange(year, month1)[1])
+                                       calendar.monthrange(year, month1)[1])
 
         # Obtenir le premier jour du mois d'avant
         before_period_start = datetime(year, month2, 1)
 
         # Obtenir le dernier jour du mois d'avant
         before_period_end = datetime(year, month2,
-                                           calendar.monthrange(year, month2)[1])
+                                     calendar.monthrange(year, month2)[1])
 
     # Filtre optionnel
     filter_conditions = filter_conditions or {}
 
     # Commandes de la periode dernière
-    previous_period_orders = orders.objects.filter(create_at__gte=previous_period_start, create_at__lte=previous_period_end, **filter_conditions)
+    previous_period_orders = orders.objects.filter(create_at__gte=previous_period_start,
+                                                   create_at__lte=previous_period_end, **filter_conditions)
 
-    if len(previous_period_orders)==0:
+    if len(previous_period_orders) == 0:
         if not filter_conditions:
             period_orders_info = {
                 'last_period_order_count': 0,
@@ -166,7 +212,7 @@ def get_periodicaly_orders_info(filter_conditions=None, period="week") -> dict|b
 
     if period_before_order_count > 0:
         order_count_evolution = ((
-                                             previous_period_order_count - period_before_order_count) / period_before_order_count) * 100
+                                         previous_period_order_count - period_before_order_count) / period_before_order_count) * 100
 
     if period_before_turnover > 0:
         turnover_evolution = ((previous_period_turnover - period_before_turnover) / period_before_turnover) * 100
@@ -314,13 +360,13 @@ def get_most_and_least_sold_pizza_names(period) -> dict:
         before_period_start = datetime(year, month2, 1)
 
         # Obtenir le dernier jour du mois d'avant
-        before_period_end = datetime(year, month2,calendar.monthrange(year, month2)[1])
-
+        before_period_end = datetime(year, month2, calendar.monthrange(year, month2)[1])
 
     # Ventes de pizzas de la periode dernière
-    previous_period_pizzas = Pizza.objects.filter(create_at__gte=previous_period_start, create_at__lte=previous_period_end)
+    previous_period_pizzas = Pizza.objects.filter(create_at__gte=previous_period_start,
+                                                  create_at__lte=previous_period_end)
 
-    if len(previous_period_pizzas)==0:
+    if len(previous_period_pizzas) == 0:
         previous_period_list = None
     else:
         previous_period_sales = {}
@@ -420,7 +466,7 @@ def get_most_and_least_sold_pizza_names(period) -> dict:
         return  parent_path, file_path"""
 
 
-def plot_empty_polar(file_name, fig,ax):
+def plot_empty_polar(file_name, fig, ax):
     # Listes vides
     categories = []
     values = []
@@ -448,9 +494,7 @@ def plot_empty_polar(file_name, fig,ax):
         return os.path.join(img_path, file_name)
 
 
-
 def generate_2x_charts(datalist, filename='Total pizzas vendues.pdf'):
-
     if datalist[0]:
         data1 = datalist[0][0]
     else:
@@ -460,7 +504,6 @@ def generate_2x_charts(datalist, filename='Total pizzas vendues.pdf'):
         data2 = datalist[1][0]
     else:
         data2 = pd.DataFrame()
-
 
     # Créer une figure avec deux sous-graphiques polaires côte à côte
     fig, axes = plt.subplots(2, 1, figsize=(12, 18))
@@ -505,7 +548,8 @@ def generate_2x_charts(datalist, filename='Total pizzas vendues.pdf'):
 
         norm2 = plt.Normalize(data2['Ventes'].min(), data2['Ventes'].max())
         colors2 = plt.cm.coolwarm(norm2(data2['Ventes']))
-        sns.barplot(legend=False, x='Ventes', y='Pizzas', data=data2, errorbar=None, palette=colors2.tolist(), orient='h')
+        sns.barplot(legend=False, x='Ventes', y='Pizzas', data=data2, errorbar=None, palette=colors2.tolist(),
+                    orient='h')
 
         # Ajouter des titres et des étiquettes
         plt.title(datalist[1][1])
@@ -521,7 +565,8 @@ def generate_2x_charts(datalist, filename='Total pizzas vendues.pdf'):
 
         norm1 = plt.Normalize(data1['Ventes'].min(), data1['Ventes'].max())
         colors1 = plt.cm.coolwarm(norm1(data1['Ventes']))
-        sns.barplot(legend=False, x='Ventes', y='Pizzas', data=data1, errorbar=None, palette=colors1.tolist(), orient='h')
+        sns.barplot(legend=False, x='Ventes', y='Pizzas', data=data1, errorbar=None, palette=colors1.tolist(),
+                    orient='h')
 
         # Ajouter des titres et des étiquettes
         plt.title(datalist[0][1])
@@ -538,7 +583,8 @@ def generate_2x_charts(datalist, filename='Total pizzas vendues.pdf'):
         colors1 = plt.cm.coolwarm(norm1(data1['Ventes']))
 
         ax1 = axes[0]
-        sns.barplot(legend=False, ax=ax1, x='Ventes', y='Pizzas', data=data1, errorbar=None, palette=colors1.tolist(), orient='h')
+        sns.barplot(legend=False, ax=ax1, x='Ventes', y='Pizzas', data=data1, errorbar=None, palette=colors1.tolist(),
+                    orient='h')
         ax1.title(datalist[0][1])
         ax1.ylabel("Pizzas")
         ax1.xlabel("Ventes")
@@ -548,11 +594,11 @@ def generate_2x_charts(datalist, filename='Total pizzas vendues.pdf'):
 
         # Deuxième graphique polaire
         ax2 = axes[1]
-        sns.barplot(legend=False, ax=ax2, x='Ventes', y='Pizzas', data=data2, errorbar=None, palette=colors2.tolist(), orient='h')
+        sns.barplot(legend=False, ax=ax2, x='Ventes', y='Pizzas', data=data2, errorbar=None, palette=colors2.tolist(),
+                    orient='h')
         ax2.title(datalist[1][1])
         ax1.ylabel("Pizzas")
         ax1.xlabel("Ventes")
-
 
         # Ajuster l'espacement
         plt.tight_layout()
@@ -562,11 +608,10 @@ def generate_2x_charts(datalist, filename='Total pizzas vendues.pdf'):
             pdf.savefig(fig)  # Sauvegarde la figure
             plt.close(fig)
 
-        return os.path.join(img_path,filename)
+        return os.path.join(img_path, filename)
 
 
 def generate_4x_charts(datasets, file_name="total commandes et chiffres d'affaire.pdf"):
-
     # Configuration de la grille
     fig, axes = plt.subplots(2, 2, figsize=(18, 18))
     axes = axes.flatten()
@@ -602,17 +647,17 @@ def generate_4x_charts(datasets, file_name="total commandes et chiffres d'affair
     plt.tight_layout()
 
     # Sauvegarde dans un fichier PDF
-    with PdfPages(os.path.join(img_path,file_name)) as pdf:
+    with PdfPages(os.path.join(img_path, file_name)) as pdf:
         pdf.savefig(fig)
 
-    return os.path.join(img_path,file_name)
+    return os.path.join(img_path, file_name)
 
 
-def create_excel_with_data(file_name,first_period=None,second_period=None):
-    data = prepare_datas_to_export(first_period,second_period)
+def create_excel_with_data(file_name, first_period=None, second_period=None):
+    data = prepare_datas_to_export(first_period, second_period)
     if data:
         # Construire le chemin absolu du fichier Excel dans MEDIA_ROOT
-        file_path = os.path.join(settings.MEDIA_ROOT, 'reports',file_name)
+        file_path = os.path.join(settings.MEDIA_ROOT, 'reports', file_name)
 
         workbook = openpyxl.Workbook()
         # Obtenir la feuille active par défaut

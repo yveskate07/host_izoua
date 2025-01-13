@@ -203,6 +203,7 @@ class orders(models.Model):
     client = models.ForeignKey(Client, on_delete=models.SET_NULL, null=True)
     deliveryPrice = models.IntegerField(null=True, blank=True, default=0) # champs à renseigner dans le cas d'une commande sur livraison
     notified = models.BooleanField(default=False)
+    html_code = models.TextField(blank=False, null=False, default='') # code html de la commande
 
     def description(self):
         return f'Base de données contenant les informations des commandes livrées ou annulées. \nedit requested: indique si une modification pour cette commande a été demandée, pour refuser cette modification, decocher cette case.'
