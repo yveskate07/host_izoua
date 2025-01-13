@@ -834,12 +834,13 @@ def fetching_datas(request, filter_, date_to_print):
             )
             numb_delivery = len(orders_)
             total_pizzas = sum([order.pizza_and_extratopping_price for order in orders_ if order.payment_method_order == 'delivered_man'])
+            total_delivery_price_percent = sum([order.deliveryPrice for order in orders_])*0.2
             total_delivery = orders_.aggregate(
                 total_delivery=Sum('deliveryPrice', filter=Q(deliveryPrice__isnull=False) & Q(payment_method_delivery='delivered_man'))
             )['total_delivery'] or 0
 
             delivDict = {'name': deliMan.name, 'TotalPizzasSold': total_pizzas, 'TotalDeliv': total_delivery,
-                         'Percent': 0.2 * total_delivery,'numb_delivery':numb_delivery}
+                         'Percent': 0.2 * total_delivery_price_percent,'numb_delivery':numb_delivery}
             context['delivery_men_infos'].append(delivDict)
 
     preselected_datetime = datetime.strptime(
@@ -881,15 +882,16 @@ def get_summary_of_one_delivery_man(request):
                 pizza_names = ", ".join(
                     [" - ".join([pizza.moitie_1, pizza.moitie_2]) if pizza.status == 'Spéciale' else pizza.name for pizza in order.pizzas.all()])
                 his_orders.append({'a':person,'b':pizza_names, 'c':order.client,
-                                   'd':order.pizza_and_extratopping_price if order.payment_method_order=='delivered_man' else 0,
-                                   'e': order.deliveryPrice if order.payment_method_delivery=='delivered_man' else 0,
+                                   'd':order.pizza_and_extratopping_price if order.payment_method_order=='delivered_man' else 'Payé chez Izoua',
+                                   'e': order.deliveryPrice if order.payment_method_delivery=='delivered_man' else 'Payé chez Izoua',
                                    'f': order.deliveryHour})
                 total_orders_in_cfa += order.pizza_and_extratopping_price if order.payment_method_order=='delivered_man' else 0
                 total_delivery_in_cfa += order.deliveryPrice if order.payment_method_delivery=='delivered_man' else 0
+                total_20_percent_delivery_in_cfa += order.deliveryPrice
             context['his_orders'] = his_orders
             context['total_orders_in_cfa'] = total_orders_in_cfa
             context['total_delivery_in_cfa'] = total_delivery_in_cfa
-            context['total_20_percent_delivery_in_cfa'] = 0.2*total_delivery_in_cfa
+            context['total_20_percent_delivery_in_cfa'] = 0.2*total_20_percent_delivery_in_cfa
 
 
     context['delivery_men'] = get_delivery_men()
