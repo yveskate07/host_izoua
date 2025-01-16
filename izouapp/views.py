@@ -26,6 +26,8 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(script_dir)
 file_path = os.path.join(parent_dir, 'staticfiles', 'izouapp', 'data.json') # pour lea production
 
+static_path = os.path.join(parent_dir, 'staticfiles')
+
 #file_path = os.path.join(script_dir, 'static', 'izouapp', 'data.json')
 
 
@@ -622,8 +624,18 @@ def home(request):  # quand l'utilisateur atterit sur la page pour la premiere f
                               date_to_print=request.session.get('date_to_print', now().date().isoformat()))
 
     elif request.session.get('filter_by_status',None):
+        # Nom du fichier
+        nom_fichier = "log.txt"
+
+        # Contenu à écrire dans le fichier
+        contenu = f"""le type de commande sélectionné est: {request.session['selected_option']}"""
+
+        # Ouverture du fichier en mode écriture
+        with open(os.path.join(static_path,'izouapp','txts',nom_fichier), "w", encoding="utf-8") as fichier:
+            fichier.write(contenu)
+
         request.session['filter_by_status'] = False
-        return fetching_datas(request, filter_=request.POST.get('selected_option'),
+        return fetching_datas(request, filter_=request.session['selected_option'],
                               date_to_print=request.session.get('date_selected', now().date().isoformat()))
 
     elif request.session.get('filter_by_date',None):

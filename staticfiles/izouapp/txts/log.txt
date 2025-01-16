@@ -1,0 +1,1 @@
+le type de commande sélectionné est: all
