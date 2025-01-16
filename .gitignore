@@ -3,4 +3,5 @@
 izouaproject/.env
 izouapp/.env
 __pycache__
+staticfiles/izouapp/txts/log.txt
 db.sqlite3
