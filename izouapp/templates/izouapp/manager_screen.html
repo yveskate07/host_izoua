@@ -1204,10 +1204,26 @@ En attente
                 {% if clients %}
                     {% for client in clients %}
                         <tr>
-                            <td>{{client.0}}</td>
+                            <td>{{forloop.counter}}</td>
                             <td>{{client.1}}</td>
-                            <td>{{client.2}}</td>
-                            <td>{{client.3}}</td>
+                            {% if client.2 %}
+                                <td>
+                                    {{client.2}}
+                                </td>
+                            {% else %}
+                                <td>
+                                    Non renseigné
+                                </td>
+                            {% endif %}
+                            {% if client.3 %}
+                                <td>
+                                    {{client.3}}
+                                </td>
+                            {% else %}
+                                <td>
+                                    Non renseigné
+                                </td>
+                            {% endif %}
                         </tr>
                     {% endfor %}
                 {% else %}
